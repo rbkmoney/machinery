@@ -7,7 +7,7 @@ def finalHook = {
   }
 }
 
-def masterlike() = {
+def masterlike() {
     return (env.BRANCH_NAME == 'master' || env.BRANCH_NAME.startsWith('epic'))
 }
 
