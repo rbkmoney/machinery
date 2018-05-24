@@ -1,4 +1,4 @@
-REBAR := $(or $(shell which rebar3), $(error "`rebar3' executable missing"))
+REBAR := $(shell which rebar3 2>/dev/null || which ./rebar3)
 
 UTILS_PATH := build_utils
 TEMPLATES_PATH := .
@@ -9,7 +9,7 @@ SUBTARGETS = $(patsubst %,%/.git,$(SUBMODULES))
 SERVICE_NAME := mg-api
 BUILD_IMAGE_TAG := eee42f2ca018c313190bc350fe47d4dea70b6d27
 
-CALL_ANYWHERE := all submodules compile xref lint dialyze release clean distclean
+CALL_ANYWHERE := all submodules compile xref lint dialyze clean distclean
 
 CALL_W_CONTAINER := $(CALL_ANYWHERE) test
 
