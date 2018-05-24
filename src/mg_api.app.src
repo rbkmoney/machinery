@@ -1,0 +1,22 @@
+{application, mg_api, [
+    {description,
+        "Machinegun API lib."
+    },
+    {vsn, "1"},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        genlib,
+        cowboy,
+        woody,
+        mg_proto
+    ]},
+    {env, []},
+    {modules, []},
+    {maintainers, [
+        "Andrey Mayorov <a.mayorov@rbkmoney.com>"
+    ]},
+    {licenses, []},
+    {links, ["https://github.com/rbkmoney/mg-client-erlang"]}
+]}.

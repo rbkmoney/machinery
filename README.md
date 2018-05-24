@@ -1,3 +1,3 @@
-# Machinegun client
+# Machinegun API
 
-Client for [machinegun](https://github.com/rbkmoney/machinegun).
+API lib for [machinegun](https://github.com/rbkmoney/machinegun).
