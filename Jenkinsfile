@@ -7,6 +7,10 @@ def finalHook = {
   }
 }
 
+def masterlike() = {
+    return (env.BRANCH_NAME == 'master' || env.BRANCH_NAME.startsWith('epic'))
+}
+
 build('mg-api-erlang', 'docker-host', finalHook) {
   checkoutRepo()
   loadBuildUtils()
@@ -17,10 +21,6 @@ build('mg-api-erlang', 'docker-host', finalHook) {
     env.JENKINS_LIB = "build-utils/jenkins_lib"
     pipeDefault = load("${env.JENKINS_LIB}/pipeDefault.groovy")
     withWsCache = load("${env.JENKINS_LIB}/withWsCache.groovy")
-  }
-
-  def masterlike() {
-    return (env.BRANCH_NAME == 'master' || env.BRANCH_NAME.startsWith('epic'))
   }
 
   pipeDefault() {
