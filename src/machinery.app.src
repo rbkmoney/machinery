@@ -1,6 +1,6 @@
-{application, mg_api, [
+{application, machinery, [
     {description,
-        "Machinegun API lib."
+        "Machinegun client/handler lib."
     },
     {vsn, "1"},
     {registered, []},
@@ -15,8 +15,9 @@
     {env, []},
     {modules, []},
     {maintainers, [
+        "Anton Belyaev <a.belyaev@rbkmoney.com>",
         "Andrey Mayorov <a.mayorov@rbkmoney.com>"
     ]},
     {licenses, []},
-    {links, ["https://github.com/rbkmoney/mg-client-erlang"]}
+    {links, ["https://github.com/rbkmoney/machinery"]}
 ]}.

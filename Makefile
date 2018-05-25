@@ -6,7 +6,7 @@ TEMPLATES_PATH := .
 SUBMODULES = $(UTILS_PATH)
 SUBTARGETS = $(patsubst %,%/.git,$(SUBMODULES))
 
-SERVICE_NAME := mg-api
+SERVICE_NAME := machinery
 BUILD_IMAGE_TAG := eee42f2ca018c313190bc350fe47d4dea70b6d27
 
 CALL_ANYWHERE := all submodules compile xref lint dialyze clean distclean

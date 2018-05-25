@@ -1,6 +1,6 @@
 namespaces:
     payproc/tags:
         processor:
-            url: http://mg-api:8022/v1/stateproc
+            url: http://machinery:8022/v1/stateproc
 storage:
     type: memory

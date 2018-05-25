@@ -1,7 +1,7 @@
 %%% TODO
 %%%  - Model things like `ct_sup` with something hook-like?
 
--module(mg_api_machine_unique_tag_mg_example_test_SUITE).
+-module(machinery_machine_unique_tag_mg_example_test_SUITE).
 
 %% Test suite
 
@@ -48,7 +48,7 @@ init_per_suite(C) ->
     % _ = dbg:tracer(),
     % _ = dbg:p(all, c),
     % _ = dbg:tpl({'woody_client', '_', '_'}, x),
-    {StartedApps, _StartupCtx} = start_apps([lager, mg_api]),
+    {StartedApps, _StartupCtx} = start_apps([lager, machinery]),
     SuiteSup = ct_sup:start(),
     start_woody_server([
         {started_apps , StartedApps},
@@ -58,7 +58,7 @@ init_per_suite(C) ->
 start_woody_server(C) ->
     {ok, PID} = supervisor:start_child(
         cfg(suite_sup, C),
-        mg_api_machine_unique_tag_mg_example:child_spec(?MODULE)
+        machinery_machine_unique_tag_mg_example:child_spec(?MODULE)
     ),
     [{payproc_mg_machine_sup, PID} | C].
 
@@ -82,8 +82,8 @@ tag_success(C) ->
     Tag = genlib:unique(),
     ID = pid_to_binary(self()),
     Opts = #{woody_ctx => get_woody_ctx(C)},
-    ok = mg_api_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
-    {ok, ID} = mg_api_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
+    ok = machinery_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
+    {ok, ID} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
 
 -spec tag_twice_success(config()) -> test_return().
 
@@ -91,9 +91,9 @@ tag_twice_success(C) ->
     Tag = genlib:unique(),
     ID = pid_to_binary(self()),
     Opts = #{woody_ctx => get_woody_ctx(C)},
-    ok = mg_api_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
-    ok = mg_api_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
-    {ok, ID} = mg_api_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
+    ok = machinery_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
+    ok = machinery_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
+    {ok, ID} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
 
 -spec single_tag_set_only(config()) -> test_return().
 
@@ -103,7 +103,7 @@ single_tag_set_only(C) ->
     IDs = [integer_to_binary(E) || E <- lists:seq(1, 42)],
     Rs = genlib_pmap:map(
         fun (ID) ->
-            {ID, mg_api_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts)}
+            {ID, machinery_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts)}
         end,
         IDs
     ),
@@ -117,9 +117,9 @@ untag_success(C) ->
     Tag = genlib:unique(),
     ID = pid_to_binary(self()),
     Opts = #{woody_ctx => get_woody_ctx(C)},
-    ok = mg_api_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
-    ok = mg_api_machine_unique_tag_mg_example:untag(payproc, Tag, ID, Opts),
-    {error, unset} = mg_api_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
+    ok = machinery_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
+    ok = machinery_machine_unique_tag_mg_example:untag(payproc, Tag, ID, Opts),
+    {error, unset} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
 
 -spec conflict_untag_failure(config()) -> test_return().
 
@@ -128,10 +128,10 @@ conflict_untag_failure(C) ->
     ID1 = pid_to_binary(self()),
     ID2 = pid_to_binary(cfg(suite_sup, C)),
     Opts = #{woody_ctx => get_woody_ctx(C)},
-    ok = mg_api_machine_unique_tag_mg_example:tag(payproc, Tag, ID1, Opts),
-    {error, {set, ID1}} = mg_api_machine_unique_tag_mg_example:untag(payproc, Tag, ID2, Opts),
-    ok = mg_api_machine_unique_tag_mg_example:untag(payproc, Tag, ID1, Opts),
-    ok = mg_api_machine_unique_tag_mg_example:untag(payproc, Tag, ID2, Opts).
+    ok = machinery_machine_unique_tag_mg_example:tag(payproc, Tag, ID1, Opts),
+    {error, {set, ID1}} = machinery_machine_unique_tag_mg_example:untag(payproc, Tag, ID2, Opts),
+    ok = machinery_machine_unique_tag_mg_example:untag(payproc, Tag, ID1, Opts),
+    ok = machinery_machine_unique_tag_mg_example:untag(payproc, Tag, ID2, Opts).
 
 -spec reset_tag_success(config()) -> test_return().
 
@@ -139,11 +139,11 @@ reset_tag_success(C) ->
     Tag = genlib:unique(),
     ID = pid_to_binary(self()),
     Opts = #{woody_ctx => get_woody_ctx(C)},
-    ok = mg_api_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
-    ok = mg_api_machine_unique_tag_mg_example:untag(payproc, Tag, ID, Opts),
-    ok = mg_api_machine_unique_tag_mg_example:untag(payproc, Tag, ID, Opts),
-    ok = mg_api_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
-    {ok, ID} = mg_api_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
+    ok = machinery_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
+    ok = machinery_machine_unique_tag_mg_example:untag(payproc, Tag, ID, Opts),
+    ok = machinery_machine_unique_tag_mg_example:untag(payproc, Tag, ID, Opts),
+    ok = machinery_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
+    {ok, ID} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
 
 %%
 

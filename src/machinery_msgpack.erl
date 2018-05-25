@@ -1,7 +1,7 @@
 %%%
 %%% Msgpack manipulation employed by machinegun interfaces.
 
--module(mg_api_msgpack).
+-module(machinery_msgpack).
 -include_lib("mg_proto/include/mg_proto_msgpack_thrift.hrl").
 
 %% API

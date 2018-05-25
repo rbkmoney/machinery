@@ -1,12 +1,12 @@
 %%%
 %%% Machine behaving as a unique tag.
 
--module(mg_api_machine_unique_tag).
+-module(machinery_machine_unique_tag).
 
 %% API
 
--type id()        :: mg_api:id().
--type namespace() :: mg_api:namespace().
+-type id()        :: machinery:id().
+-type namespace() :: machinery:namespace().
 -type tag()       :: binary().
 
 -export_type([tag/0]).
@@ -17,7 +17,7 @@
 
 %% Machine behaviour
 
--behaviour(mg_api).
+-behaviour(machinery).
 
 -export([init/4]).
 -export([process_timeout/3]).
@@ -25,11 +25,10 @@
 
 %%
 
--spec tag(namespace(), tag(), id(), mg_api:backend(_)) ->
+-spec tag(namespace(), tag(), id(), machinery:backend(_)) ->
     ok | {error, {set, id()}}.
-
 tag(NS, Tag, ID, Backend) ->
-    case mg_api:start(construct_namespace(NS), Tag, {tag, ID}, Backend) of
+    case machinery:start(construct_namespace(NS), Tag, {tag, ID}, Backend) of
         ok ->
             ok;
         {error, exists} ->
@@ -43,11 +42,10 @@ tag(NS, Tag, ID, Backend) ->
             end
     end.
 
--spec untag(namespace(), tag(), id(), mg_api:backend(_)) ->
+-spec untag(namespace(), tag(), id(), machinery:backend(_)) ->
     ok | {error, {set, id()}}.
-
 untag(NS, Tag, ID, Backend) ->
-    case mg_api:call(construct_namespace(NS), Tag, {untag, ID}, Backend) of
+    case machinery:call(construct_namespace(NS), Tag, {untag, ID}, Backend) of
         {ok, ok} ->
             ok;
         {ok, {error, IDWas}} ->
@@ -56,11 +54,10 @@ untag(NS, Tag, ID, Backend) ->
             ok
     end.
 
--spec get(namespace(), tag(), mg_api:backend(_)) ->
+-spec get(namespace(), tag(), machinery:backend(_)) ->
     {ok, id()} | {error, unset}.
-
 get(NS, Tag, Backend) ->
-    case mg_api:get(construct_namespace(NS), Tag, Backend) of
+    case machinery:get(construct_namespace(NS), Tag, Backend) of
         {ok, Machine} ->
             ID = get_machine_st(Machine),
             {ok, ID};
@@ -73,10 +70,10 @@ construct_namespace(NS) ->
 
 %%
 
--type machine()      :: mg_api:machine(ev()).
--type handler_opts() :: mg_api:handler_opts(_).
--type result()       :: mg_api:result(ev()).
--type response()     :: mg_api:response(
+-type machine()      :: machinery:machine(ev()).
+-type handler_opts() :: machinery:handler_opts(_).
+-type result()       :: machinery:result(ev()).
+-type response()     :: machinery:response(
     ok | {error, id()}
 ).
 
@@ -86,21 +83,18 @@ construct_namespace(NS) ->
 
 -spec init({tag, id()}, machine(), undefined, handler_opts()) ->
     result().
-
--spec process_timeout(machine(), undefined, handler_opts()) ->
-    result().
-
--spec process_call({untag, id()}, machine(), undefined, handler_opts()) ->
-    {response(), result()}.
-
 init({tag, ID}, _Machine, _, _Opts) ->
     #{
         events => [ID]
     }.
 
+-spec process_timeout(machine(), undefined, handler_opts()) ->
+    result().
 process_timeout(#{}, _, _Opts) ->
     #{}.
 
+-spec process_call({untag, id()}, machine(), undefined, handler_opts()) ->
+    {response(), result()}.
 process_call({untag, ID}, Machine, _, _Opts) ->
     case get_machine_st(Machine) of
         ID ->

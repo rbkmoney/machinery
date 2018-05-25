@@ -1,7 +1,7 @@
 %%%
 %%% Simplistic machinegun client.
 
--module(mg_api_mg_client).
+-module(machinery_mg_client).
 -include_lib("mg_proto/include/mg_proto_state_processing_thrift.hrl").
 
 %% API
@@ -27,7 +27,6 @@
 
 -spec new(woody_client(), woody_context:ctx()) ->
     client().
-
 new(WoodyClient = #{url := _, event_handler := _}, WoodyCtx) ->
     {WoodyClient, WoodyCtx}.
 
@@ -47,25 +46,22 @@ new(WoodyClient = #{url := _, event_handler := _}, WoodyCtx) ->
 -spec start(namespace(), id(), args(), client()) ->
     {ok, ok} |
     {exception, namespace_not_found() | machine_already_exists() | machine_failed()}.
-
 start(NS, ID, Args, Client) ->
     issue_call('Start', [NS, ID, Args], Client).
 
 -spec call(descriptor(), args(), client()) ->
     {ok, call_response()} |
     {exception, namespace_not_found() | machine_not_found() | machine_failed()}.
-
 call(Descriptor, Args, Client) ->
     issue_call('Call', [Descriptor, Args], Client).
 
 -spec get_machine(descriptor(), client()) ->
     {ok, machine()} |
     {exception, namespace_not_found() | machine_not_found()}.
-
 get_machine(Descriptor, Client) ->
     issue_call('GetMachine', [Descriptor], Client).
 
-%%
+%% Internal functions
 
 issue_call(Function, Args, {WoodyClient, WoodyCtx}) ->
     Service = {mg_proto_state_processing_thrift, 'Automaton'},

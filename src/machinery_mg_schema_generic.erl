@@ -3,19 +3,19 @@
 %%%
 %%% Excluding, as expected: pids, refs, ports.
 
--module(mg_api_mg_schema_generic).
+-module(machinery_mg_schema_generic).
 
+%% API
 -export([marshal/1]).
 -export([unmarshal/1]).
 
 %% Storage schema behaviour
-
--behaviour(mg_api_mg_schema).
+-behaviour(machinery_mg_schema).
 
 -export([marshal/2]).
 -export([unmarshal/2]).
 
--import(mg_api_msgpack, [
+-import(machinery_msgpack, [
     nil/0,
     wrap/1,
     unwrap/1
@@ -23,22 +23,20 @@
 
 %%
 
--type t()  :: mg_api_mg_schema:t().
--type v(T) :: mg_api_mg_schema:v(T).
+-type t()  :: machinery_mg_schema:t().
+-type v(T) :: machinery_mg_schema:v(T).
 
 -spec marshal(t(), v(eterm())) ->
-    mg_api_msgpack:t().
-
--spec unmarshal(t(), mg_api_msgpack:t()) ->
-    v(eterm()).
-
+    machinery_msgpack:t().
 marshal(_T, V) ->
     marshal(V).
 
+-spec unmarshal(t(), machinery_msgpack:t()) ->
+    v(eterm()).
 unmarshal(_T, V) ->
     unmarshal(V).
 
-%%
+%% API
 
 -type eterm() ::
     atom()   |
@@ -49,11 +47,7 @@ unmarshal(_T, V) ->
     map().
 
 -spec marshal(eterm()) ->
-    mg_api_msgpack:t().
-
--spec unmarshal(mg_api_msgpack:t()) ->
-    eterm().
-
+    machinery_msgpack:t().
 marshal(undefined) ->
     nil();
 marshal(V) when is_boolean(V) ->
@@ -75,6 +69,8 @@ marshal(V) when is_map(V) ->
 marshal(V) ->
     error({badarg, V}).
 
+-spec unmarshal(machinery_msgpack:t()) ->
+    eterm().
 unmarshal(M) ->
     unmarshal_v(unwrap(M)).
 

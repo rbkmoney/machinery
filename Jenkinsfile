@@ -11,7 +11,7 @@ def masterlike() {
     return (env.BRANCH_NAME == 'master' || env.BRANCH_NAME.startsWith('epic'))
 }
 
-build('mg-api-erlang', 'docker-host', finalHook) {
+build('machinery', 'docker-host', finalHook) {
   checkoutRepo()
   loadBuildUtils()
 

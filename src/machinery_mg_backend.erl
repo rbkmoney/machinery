@@ -6,106 +6,106 @@
 %%  - There's marshalling scattered around which is common enough for _any_ thrift interface.
 %%  - Hack up storage schema integration.
 
--module(mg_api_mg_backend).
+-module(machinery_mg_backend).
 -include_lib("mg_proto/include/mg_proto_state_processing_thrift.hrl").
 
--type namespace() :: mg_api:namespace().
--type id()        :: mg_api:id().
--type scope()     :: mg_api:scope().
--type args(T)     :: mg_api:args(T).
--type response(T) :: mg_api:response(T).
--type machine(T)  :: mg_api:machine(T).
+-type namespace()       :: machinery:namespace().
+-type id()              :: machinery:id().
+-type scope()           :: machinery:scope().
+-type args(T)           :: machinery:args(T).
+-type response(T)       :: machinery:response(T).
+-type machine(T)        :: machinery:machine(T).
+-type logic_handler(T)  :: machinery:logic_handler(T).
+
+-define(BACKEND_CORE_OPTS,
+    schema          := machinery_mg_schema:schema()
+).
 
 %% Server types
+-type backend_config() :: #{
+    ?BACKEND_CORE_OPTS
+}.
+
 -type handler_config() :: #{
     path            := woody:path(),
     backend_config  := backend_config()
 }.
--export_type([handler_config/0]).
 
--type backend_config() :: #{
-    schema          := mg_api_mg_schema:schema()
-}.
--export_type([backend_config/0]).
 
--type handler() :: mg_api:handler(_Args, handler_config()).
--export_type([handler/0]).
+-type handler(A)       :: {logic_handler(A), handler_config()}. %% handler server spec
 
--type handler_opts() :: mg_api:handler_opts(#{
-    woody_ctx       := woody_context:ctx()
+-type handler_opts() :: machinery:handler_opts(#{
+    woody_ctx    := woody_context:ctx()
 }).
--export_type([handler_opts/0]).
 
--type backend_params() :: #{
-    handler         := mg_api:mod_opts(_),
-    schema          := mg_api_mg_schema:schema()
+-type backend_handler_opts() :: #{
+    handler      := logic_handler(_),
+    opts         := backend_config()
 }.
 
 %% Client types
-
--type opts() :: #{    %% mg_api:backend_opts()
+-type backend_opts() :: machinery:backend_opts(#{
     woody_ctx       := woody_context:ctx(),
-    client          := mg_api_mg_client:woody_client(),
-    schema          := mg_api_mg_schema:schema()
-}.
--export_type([opts/0]).
+    client          := machinery_mg_client:woody_client(),
+    ?BACKEND_CORE_OPTS
+}).
+
+-type backend() :: {?MODULE, backend_opts()}.
+
+-export_type([backend_config/0]).
+-export_type([handler_config/0]).
+-export_type([logic_handler/1]).
+-export_type([handler/1]).
+-export_type([handler_opts/0]).
+-export_type([backend_opts/0]).
+-export_type([backend/0]).
 
 %% API
-
 -export([get_routes/2]).
 -export([get_handler/2]).
+-export([new/1]).
 
-%% mg_api_backend behaviour
-
--behaviour(mg_api_backend).
+%% Machinery backend
+-behaviour(machinery_backend).
 
 -export([start/4]).
 -export([call/5]).
 -export([get/4]).
 
 %% Woody handler
-
 -behaviour(woody_server_thrift_handler).
 
 -export([handle_function/4]).
 
 %% API
 
--spec get_routes([handler()], mg_api_utils:route_opts()) ->
-    mg_api_utils:woody_routes().
-
+-spec get_routes([handler(_)], machinery_utils:route_opts()) ->
+    machinery_utils:woody_routes().
 get_routes(Handlers, Opts) ->
-    mg_api_utils:get_woody_routes(Handlers, fun get_handler/2, Opts).
+    machinery_utils:get_woody_routes(Handlers, fun get_handler/2, Opts).
 
--spec get_handler(handler(), mg_api_utils:route_opts()) ->
-    mg_api_utils:woody_handler().
+-spec get_handler(handler(_), machinery_utils:route_opts()) ->
+    machinery_utils:woody_handler().
 get_handler({LogicHandler, #{path := Path, backend_config := Config}}, _) ->
-    {Path, {{mg_proto_state_processing_thrift, 'Processor'}, {?MODULE, get_backend_params(LogicHandler, Config)}}}.
+    {Path, {
+        {mg_proto_state_processing_thrift, 'Processor'},
+        {?MODULE, get_backend_handler_opts(LogicHandler, Config)}
+    }}.
 
-%% Utils
+-spec new(backend_opts()) ->
+    backend().
+new(Opts) ->
+    {?MODULE, Opts}.
 
--spec get_backend_params(handler(), backend_config()) ->
-    backend_params().
+%% Machinery backend
 
-get_backend_params(Handler, Config) ->
-    Config#{handler => Handler}.
-
-%% mg_api_backend behaviour
-
--spec start(namespace(), id(), args(_), opts()) ->
+-spec start(namespace(), id(), args(_), backend_opts()) ->
     ok | {error, exists}.
-
--spec call(namespace(), id(), scope(), args(_), opts()) ->
-    {ok, response(_)} | {error, notfound}.
-
--spec get(namespace(), id(), scope(), opts()) ->
-    {ok, machine(_)} | {error, notfound}.
-
 start(NS, ID, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
     InitArgs = marshal({schema, Schema, {args, init}}, Args),
-    case mg_api_mg_client:start(marshal(namespace, NS), marshal(id, ID), InitArgs, Client) of
+    case machinery_mg_client:start(marshal(namespace, NS), marshal(id, ID), InitArgs, Client) of
         {ok, ok} ->
             ok;
         {exception, #mg_stateproc_MachineAlreadyExists{}} ->
@@ -116,12 +116,14 @@ start(NS, ID, Args, Opts) ->
             error({failed, NS, ID})
     end.
 
+-spec call(namespace(), id(), scope(), args(_), backend_opts()) ->
+    {ok, response(_)} | {error, notfound}.
 call(NS, ID, Scope, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
     Descriptor = {NS, ID, Scope},
     CallArgs = marshal({schema, Schema, {args, call}}, Args),
-    case mg_api_mg_client:call(marshal(descriptor, Descriptor), CallArgs, Client) of
+    case machinery_mg_client:call(marshal(descriptor, Descriptor), CallArgs, Client) of
         {ok, Response} ->
             {ok, unmarshal({schema, Schema, response}, Response)};
         {exception, #mg_stateproc_MachineNotFound{}} ->
@@ -132,11 +134,13 @@ call(NS, ID, Scope, Args, Opts) ->
             error({failed, NS, ID})
     end.
 
+-spec get(namespace(), id(), scope(), backend_opts()) ->
+    {ok, machine(_)} | {error, notfound}.
 get(NS, ID, Scope, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
     Descriptor = {NS, ID, Scope},
-    case mg_api_mg_client:get_machine(marshal(descriptor, Descriptor), Client) of
+    case machinery_mg_client:get_machine(marshal(descriptor, Descriptor), Client) of
         {ok, Machine} ->
             {ok, unmarshal({machine, Schema}, Machine)};
         {exception, #mg_stateproc_MachineNotFound{}} ->
@@ -145,68 +149,70 @@ get(NS, ID, Scope, Opts) ->
             error({namespace_not_found, NS})
     end.
 
-get_schema(#{schema := Schema}) ->
-    Schema.
-
-get_client(#{client := Client, woody_ctx := WoodyCtx}) ->
-    mg_api_mg_client:new(Client, WoodyCtx).
-
 %% Woody handler
 
 -spec handle_function
-    ('ProcessSignal', woody:args(), woody_context:ctx(), backend_params()) ->
+    ('ProcessSignal', woody:args(), woody_context:ctx(), backend_handler_opts()) ->
         {ok, mg_proto_state_processing_thrift:'SignalResult'()};
-    ('ProcessCall', woody:args(), woody_context:ctx(), backend_params()) ->
+    ('ProcessCall', woody:args(), woody_context:ctx(), backend_handler_opts()) ->
         {ok, mg_proto_state_processing_thrift:'CallResult'()}.
-
 handle_function(
     'ProcessSignal',
     [#mg_stateproc_SignalArgs{signal = Signal, machine = Machine}],
     WoodyCtx,
-    #{handler := Handler, schema := Schema}
+    #{handler := Handler, opts := Opts}
 ) ->
+    Schema = get_schema(Opts),
     {ok, marshal(
         {signal_result, Schema},
         dispatch_signal(
             unmarshal({signal, Schema}, Signal),
             unmarshal({machine, Schema}, Machine),
-            mg_api_utils:get_handler(Handler),
-            WoodyCtx
+            machinery_utils:get_handler(Handler),
+            get_handler_opts(WoodyCtx)
         )
     )};
-
 handle_function(
     'ProcessCall',
     [#mg_stateproc_CallArgs{arg = Args, machine = Machine}],
     WoodyCtx,
-    #{handler := Handler, schema := Schema}
+    #{handler := Handler, opts := Opts}
 ) ->
+    Schema = get_schema(Opts),
     {ok, marshal(
         {call_result, Schema},
         dispatch_call(
             unmarshal({schema, Schema, {args, call}}, Args),
             unmarshal({machine, Schema}, Machine),
-            mg_api_utils:get_handler(Handler),
-            WoodyCtx
+            machinery_utils:get_handler(Handler),
+            get_handler_opts(WoodyCtx)
         )
     )}.
 
+%% Utils
 
+-spec get_backend_handler_opts(logic_handler(_), backend_config()) ->
+    backend_handler_opts().
+get_backend_handler_opts(Handler, Config) ->
+    #{handler => Handler, opts => Config}.
 
-%% Dispatch
+get_schema(#{schema := Schema}) ->
+    Schema.
 
-dispatch_signal(Signal, Machine, {Handler, HandlerArgs}, WoodyCtx) ->
-    dispatch_signal(Signal, Machine, Handler, HandlerArgs, #{woody_ctx => WoodyCtx}).
+get_client(#{client := Client, woody_ctx := WoodyCtx}) ->
+    machinery_mg_client:new(Client, WoodyCtx).
 
-dispatch_call(Args, Machine, {Handler, HandlerArgs}, WoodyCtx) ->
-    Handler:process_call(Args, Machine, HandlerArgs, #{woody_ctx => WoodyCtx}).
+get_handler_opts(WoodyCtx) ->
+    #{woody_ctx => WoodyCtx}.
 
-dispatch_signal({init, Args}, Machine, Handler, HandlerArgs, Opts) ->
-    Handler:init(Args, Machine, HandlerArgs, Opts);
-dispatch_signal(timeout, Machine, Handler, HandlerArgs, Opts) ->
-    Handler:process_timeout(Machine, HandlerArgs, Opts).
+dispatch_signal(Signal, Machine, Handler, Opts) ->
+    machinery:dispatch_signal(Signal, Machine, Handler, Opts).
+
+dispatch_call(Args, Machine, Handler, Opts) ->
+    machinery:dispatch_call(Args, Machine, Handler, Opts).
 
 %% Marshalling
+%% TODO: move marshaling to a separate module.
 
 marshal(descriptor, {NS, ID, Scope}) ->
     #mg_stateproc_MachineDescriptor{
@@ -273,7 +279,6 @@ marshal({state_change, Schema}, #{} = V) ->
         events = marshal({list, {schema, Schema, event}}, maps:get(events, V, [])),
         % TODO
         % Provide this to logic handlers as well
-        %% aux_state = mg_api_msgpack:nil()
         aux_state = marshal({schema, Schema, aux_state}, maps:get(aux_state, V, undefined))
     };
 
@@ -300,7 +305,7 @@ marshal(direction, V) ->
 marshal({schema, Schema, T}, V) ->
     % TODO
     % Marshal properly
-    mg_api_mg_schema:marshal(Schema, T, V);
+    machinery_mg_schema:marshal(Schema, T, V);
 
 marshal(timestamp, {{Date, Time}, USec} = V) ->
     case rfc3339:format({Date, Time, USec, 0}) of
@@ -419,7 +424,7 @@ unmarshal(direction, V) ->
     unmarshal({enum, [forward, backward]}, V);
 
 unmarshal({schema, Schema, T}, V) ->
-    mg_api_mg_schema:unmarshal(Schema, T, V);
+    machinery_mg_schema:unmarshal(Schema, T, V);
 
 unmarshal(timestamp, V) when is_binary(V) ->
     case rfc3339:parse(V) of
