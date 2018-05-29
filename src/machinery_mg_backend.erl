@@ -94,7 +94,7 @@ get_handler({LogicHandler, #{path := Path, backend_config := Config}}, _) ->
 
 -spec new(backend_opts()) ->
     backend().
-new(Opts) ->
+new(Opts = #{woody_ctx := _, client := _, schema := _}) ->
     {?MODULE, Opts}.
 
 %% Machinery backend
@@ -224,20 +224,8 @@ set_aux_state(NewState, _) ->
 
 %% Marshalling
 
-marshal(descriptor, {NS, ID, Scope}) ->
-    #mg_stateproc_MachineDescriptor{
-        'ns'        = marshal(namespace, NS),
-        'ref'       = {'id', marshal(id, ID)},
-        'range'     = marshal(range, Scope)
-    };
-
-marshal(range, {Cursor, Limit, Direction}) ->
-    #mg_stateproc_HistoryRange{
-        'after'     = marshal({maybe, event_id}, Cursor),
-        'limit'     = marshal(limit, Limit),
-        'direction' = marshal(direction, Direction)
-    };
-
+%% No marshalling for the machine required by the protocol so far.
+%%
 %% marshal(
 %%     {machine, Schema},
 %%     #{
@@ -254,6 +242,20 @@ marshal(range, {Cursor, Limit, Direction}) ->
 %%         % There are required fields left
 %%         'history_range' = marshal(range, {undefined, undefined, forward})
 %%     };
+
+marshal(descriptor, {NS, ID, Scope}) ->
+    #mg_stateproc_MachineDescriptor{
+        'ns'        = marshal(namespace, NS),
+        'ref'       = {'id', marshal(id, ID)},
+        'range'     = marshal(range, Scope)
+    };
+
+marshal(range, {Cursor, Limit, Direction}) ->
+    #mg_stateproc_HistoryRange{
+        'after'     = marshal({maybe, event_id}, Cursor),
+        'limit'     = marshal(limit, Limit),
+        'direction' = marshal(direction, Direction)
+    };
 
 marshal({history, Schema}, V) ->
     marshal({list, {event, Schema}}, V);
@@ -380,7 +382,8 @@ apply_action(remove, CA) ->
     }.
 
 %%
-
+%% No unmarshalling for the decriptor required by the protocol so far.
+%%
 %% unmarshal(
 %%     descriptor,
 %%     #mg_stateproc_MachineDescriptor{
