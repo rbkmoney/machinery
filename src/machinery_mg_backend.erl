@@ -162,32 +162,30 @@ handle_function(
     WoodyCtx,
     #{handler := Handler, opts := Opts}
 ) ->
-    Schema = get_schema(Opts),
-    {ok, marshal(
-        {signal_result, Schema},
-        dispatch_signal(
-            unmarshal({signal, Schema}, Signal),
-            unmarshal({machine, Schema}, Machine),
-            machinery_utils:get_handler(Handler),
-            get_handler_opts(WoodyCtx)
-        )
-    )};
+    Schema   = get_schema(Opts),
+    Machine1 = unmarshal({machine, Schema}, Machine),
+    Result   = dispatch_signal(
+        unmarshal({signal, Schema}, Signal),
+        Machine1,
+        machinery_utils:get_handler(Handler),
+        get_handler_opts(WoodyCtx)
+    ),
+    {ok, marshal({signal_result, Schema}, handle_result(Result, Machine1))};
 handle_function(
     'ProcessCall',
     [#mg_stateproc_CallArgs{arg = Args, machine = Machine}],
     WoodyCtx,
     #{handler := Handler, opts := Opts}
 ) ->
-    Schema = get_schema(Opts),
-    {ok, marshal(
-        {call_result, Schema},
-        dispatch_call(
-            unmarshal({schema, Schema, {args, call}}, Args),
-            unmarshal({machine, Schema}, Machine),
-            machinery_utils:get_handler(Handler),
-            get_handler_opts(WoodyCtx)
-        )
-    )}.
+    Schema   = get_schema(Opts),
+    Machine1 = unmarshal({machine, Schema}, Machine),
+    {Response, Result} = dispatch_call(
+        unmarshal({schema, Schema, {args, call}}, Args),
+        Machine1,
+        machinery_utils:get_handler(Handler),
+        get_handler_opts(WoodyCtx)
+    ),
+    {ok, marshal({call_result, Schema}, {Response, handle_result(Result, Machine1)})}.
 
 %% Utils
 
@@ -210,6 +208,19 @@ dispatch_signal(Signal, Machine, Handler, Opts) ->
 
 dispatch_call(Args, Machine, Handler, Opts) ->
     machinery:dispatch_call(Args, Machine, Handler, Opts).
+
+handle_result(Result, OrigMachine) ->
+    Result#{aux_state => set_aux_state(
+        maps:get(aux_state, Result, undefined),
+        maps:get(aux_state, OrigMachine, undefined)
+    )}.
+
+set_aux_state(undefined, undefined) ->
+    machinery_msgpack:nil();
+set_aux_state(undefined, ReceivedState) ->
+    ReceivedState;
+set_aux_state(NewState, _) ->
+    NewState.
 
 %% Marshalling
 %% TODO: move marshaling to a separate module.
@@ -256,8 +267,10 @@ marshal({event, Schema}, {EventID, CreatedAt, Body}) ->
 
 marshal({signal, Schema}, {init, Args}) ->
     {init, #mg_stateproc_InitSignal{arg = marshal({schema, Schema, {args, init}}, Args)}};
+
 marshal({signal, _Schema}, timeout) ->
     {timeout, #mg_stateproc_TimeoutSignal{}};
+
 marshal({signal, Schema}, {repair, Args}) ->
     {repair, #mg_stateproc_RepairSignal{arg = marshal({maybe, {schema, Schema, {args, repair}}}, Args)}};
 
@@ -284,21 +297,28 @@ marshal({state_change, Schema}, #{} = V) ->
 
 marshal(action, V) when is_list(V) ->
     lists:foldl(fun apply_action/2, #mg_stateproc_ComplexAction{}, V);
+
 marshal(action, V) ->
     marshal(action, [V]);
+
 marshal(timer, {timeout, V}) when V > 0 ->
     {timeout, marshal(integer, V)};
+
 marshal(deadline, {deadline, V}) ->
     {deadline, marshal(timestamp, V)};
 
 marshal(namespace, V) ->
     marshal(atom, V);
+
 marshal(id, V) ->
     marshal(string, V);
+
 marshal(event_id, V) ->
     marshal(integer, V);
+
 marshal(limit, V) ->
     marshal({maybe, integer}, V);
+
 marshal(direction, V) ->
     marshal({enum, [forward, backward]}, V);
 
@@ -320,6 +340,7 @@ marshal({list, T}, V) when is_list(V) ->
 
 marshal({maybe, _}, undefined) ->
     undefined;
+
 marshal({maybe, T}, V) ->
     marshal(T, V);
 
@@ -329,10 +350,13 @@ marshal({enum, Choices = [_ | _]} = T, V) when is_atom(V) ->
 
 marshal(atom, V) when is_atom(V) ->
     atom_to_binary(V, utf8);
+
 marshal(string, V) when is_binary(V) ->
     V;
+
 marshal(integer, V) when is_integer(V) ->
     V;
+
 marshal(T, V) ->
     error(badarg, {T, V}).
 
@@ -340,14 +364,17 @@ apply_action({set_timer, V}, CA) ->
     CA#mg_stateproc_ComplexAction{
         timer = {set_timer, #mg_stateproc_SetTimerAction{timer = marshal(timer, V)}}
     };
+
 apply_action(unset_timer, CA) ->
     CA#mg_stateproc_ComplexAction{
         timer = {unset_timer, #mg_stateproc_UnsetTimerAction{}}
     };
+
 apply_action(continue, CA) ->
     CA#mg_stateproc_ComplexAction{
         timer = {set_timer, #mg_stateproc_SetTimerAction{timer = {timeout, 0}}}
     };
+
 apply_action(remove, CA) ->
     CA#mg_stateproc_ComplexAction{
         remove = #mg_stateproc_RemoveAction{}
@@ -395,6 +422,7 @@ unmarshal(
 
 unmarshal({history, Schema}, V) ->
     unmarshal({list, {event, Schema}}, V);
+
 unmarshal(
     {event, Schema},
     #mg_stateproc_Event{
@@ -407,19 +435,25 @@ unmarshal(
 
 unmarshal({signal, Schema}, {init, #mg_stateproc_InitSignal{arg = Args}}) ->
     {init, unmarshal({schema, Schema, {args, init}}, Args)};
+
 unmarshal({signal, _Schema}, {timeout, #mg_stateproc_TimeoutSignal{}}) ->
     timeout;
+
 unmarshal({signal, Schema}, {repair, #mg_stateproc_RepairSignal{arg = Args}}) ->
     {repair, unmarshal({maybe, {schema, Schema, {args, repair}}}, Args)};
 
 unmarshal(namespace, V) ->
     unmarshal(atom, V);
+
 unmarshal(id, V) ->
     unmarshal(string, V);
+
 unmarshal(event_id, V) ->
     unmarshal(integer, V);
+
 unmarshal(limit, V) ->
     unmarshal({maybe, integer}, V);
+
 unmarshal(direction, V) ->
     unmarshal({enum, [forward, backward]}, V);
 
@@ -441,6 +475,7 @@ unmarshal({list, T}, V) when is_list(V) ->
 
 unmarshal({maybe, _}, undefined) ->
     undefined;
+
 unmarshal({maybe, T}, V) ->
     unmarshal(T, V);
 
@@ -454,9 +489,12 @@ unmarshal({enum, Choices = [_ | _]} = T, V) when is_atom(V) ->
 
 unmarshal(atom, V) when is_binary(V) ->
     binary_to_existing_atom(V, utf8);
+
 unmarshal(string, V) when is_binary(V) ->
     V;
+
 unmarshal(integer, V) when is_integer(V) ->
     V;
+
 unmarshal(T, V) ->
     error(badarg, {T, V}).

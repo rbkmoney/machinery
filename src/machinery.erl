@@ -22,6 +22,7 @@
 -type event_body(T)   :: T.
 -type event(T)        :: {event_id(), timestamp(), event_body(T)}.
 -type history(T)      :: [event(T)].
+-type aux_state(T)    :: T.
 
 -type event_cursor()  :: undefined | event_id().
 -type limit()         :: undefined | pos_integer().
@@ -31,9 +32,9 @@
 -type machine(T)      :: #{
     namespace         := namespace(),
     id                := id(),
-    history           := history(T)
+    history           := history(T),
+    aux_state         := aux_state(_)
     %% TODO
-    %% aux_state should be here as well
     %% history_range ?
     %% timer ?
 }.
@@ -48,12 +49,12 @@
 -type modopts(O) :: module() | {module(), O}.
 
 %% handler
--type handler_opts(T)   :: T.  %% provided to logic handler from mg api backend
--type handler_args(T)   :: args(T).  %% provided to logic handler from handler server spec
+-type handler_opts(T)   :: T.                         %% provided to logic handler from  machinery backend
+-type handler_args(T)   :: args(T).                   %% provided to logic handler from handler server spec
 -type logic_handler(A)  :: modopts(handler_args(A)).
 
 %% client
--type backend_opts(T)   :: T.  %% opts for backend client
+-type backend_opts(T)   :: T.                        %% opts for client backend
 -type backend(O)        :: modopts(backend_opts(O)). %% client backend
 
 -export_type([modopts/1]).
@@ -81,8 +82,9 @@
     {deadline, timestamp()}.
 
 -type result(T) :: #{
-    events => [event_body(T)],
-    action => action() | [action()]
+    events    => [event_body(T)],
+    action    => action() | [action()],
+    aux_state => aux_state(_)
 }.
 
 -type action() ::
