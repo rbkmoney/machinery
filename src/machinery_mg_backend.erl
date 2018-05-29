@@ -223,7 +223,6 @@ set_aux_state(NewState, _) ->
     NewState.
 
 %% Marshalling
-%% TODO: move marshaling to a separate module.
 
 marshal(descriptor, {NS, ID, Scope}) ->
     #mg_stateproc_MachineDescriptor{
@@ -239,22 +238,22 @@ marshal(range, {Cursor, Limit, Direction}) ->
         'direction' = marshal(direction, Direction)
     };
 
-marshal(
-    {machine, Schema},
-    #{
-        ns              := NS,
-        id              := ID,
-        history         := History
-    }
-) ->
-    #mg_stateproc_Machine{
-        'ns'            = marshal(namespace, NS),
-        'id'            = marshal(id, ID),
-        'history'       = marshal({history, Schema}, History),
-        % TODO
-        % There are required fields left
-        'history_range' = marshal(range, {undefined, undefined, forward})
-    };
+%% marshal(
+%%     {machine, Schema},
+%%     #{
+%%         ns              := NS,
+%%         id              := ID,
+%%         history         := History
+%%     }
+%% ) ->
+%%     #mg_stateproc_Machine{
+%%         'ns'            = marshal(namespace, NS),
+%%         'id'            = marshal(id, ID),
+%%         'history'       = marshal({history, Schema}, History),
+%%         % TODO
+%%         % There are required fields left
+%%         'history_range' = marshal(range, {undefined, undefined, forward})
+%%     };
 
 marshal({history, Schema}, V) ->
     marshal({list, {event, Schema}}, V);
