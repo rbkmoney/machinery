@@ -1,5 +1,5 @@
 %%%
-%%% Supervisor for machinegun state processor handlers.
+%%% Machinery backend behaviour.
 
 -module(machinery_backend).
 

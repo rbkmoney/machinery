@@ -1,10 +1,9 @@
 %%%
-%%% Machine guts.
+%%% Machinery machinegun backend
 
 %% TODO
 %%
 %%  - There's marshalling scattered around which is common enough for _any_ thrift interface.
-%%  - Hack up storage schema integration.
 
 -module(machinery_mg_backend).
 -include_lib("mg_proto/include/mg_proto_state_processing_thrift.hrl").
@@ -40,7 +39,7 @@
 
 -type backend_handler_opts() :: #{
     handler      := logic_handler(_),
-    opts         := backend_config()
+    ?BACKEND_CORE_OPTS
 }.
 
 %% Client types
@@ -160,9 +159,8 @@ handle_function(
     'ProcessSignal',
     [#mg_stateproc_SignalArgs{signal = Signal, machine = Machine}],
     WoodyCtx,
-    #{handler := Handler, opts := Opts}
+    #{handler := Handler, schema := Schema}
 ) ->
-    Schema   = get_schema(Opts),
     Machine1 = unmarshal({machine, Schema}, Machine),
     Result   = dispatch_signal(
         unmarshal({signal, Schema}, Signal),
@@ -175,9 +173,8 @@ handle_function(
     'ProcessCall',
     [#mg_stateproc_CallArgs{arg = Args, machine = Machine}],
     WoodyCtx,
-    #{handler := Handler, opts := Opts}
+    #{handler := Handler, schema := Schema}
 ) ->
-    Schema   = get_schema(Opts),
     Machine1 = unmarshal({machine, Schema}, Machine),
     {Response, Result} = dispatch_call(
         unmarshal({schema, Schema, {args, call}}, Args),
@@ -192,7 +189,7 @@ handle_function(
 -spec get_backend_handler_opts(logic_handler(_), backend_config()) ->
     backend_handler_opts().
 get_backend_handler_opts(Handler, Config) ->
-    #{handler => Handler, opts => Config}.
+    Config#{handler => Handler}.
 
 get_schema(#{schema := Schema}) ->
     Schema.
@@ -212,11 +209,9 @@ dispatch_call(Args, Machine, Handler, Opts) ->
 handle_result(Result, OrigMachine) ->
     Result#{aux_state => set_aux_state(
         maps:get(aux_state, Result, undefined),
-        maps:get(aux_state, OrigMachine, undefined)
+        maps:get(aux_state, OrigMachine, machinery_msgpack:nil())
     )}.
 
-set_aux_state(undefined, undefined) ->
-    machinery_msgpack:nil();
 set_aux_state(undefined, ReceivedState) ->
     ReceivedState;
 set_aux_state(NewState, _) ->
