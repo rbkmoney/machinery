@@ -7,10 +7,6 @@ def finalHook = {
   }
 }
 
-def masterlike() {
-    return (env.BRANCH_NAME == 'master' || env.BRANCH_NAME.startsWith('epic'))
-}
-
 build('machinery', 'docker-host', finalHook) {
   checkoutRepo()
   loadBuildUtils()
@@ -25,7 +21,7 @@ build('machinery', 'docker-host', finalHook) {
 
   pipeDefault() {
 
-    if (!masterlike()) {
+    if (!masterlikeBranch()) {
 
       runStage('compile') {
         withGithubPrivkey {
