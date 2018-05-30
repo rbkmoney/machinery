@@ -1,0 +1,23 @@
+{application, machinery, [
+    {description,
+        "Machinegun client/handler lib."
+    },
+    {vsn, "1"},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        genlib,
+        cowboy,
+        woody,
+        mg_proto
+    ]},
+    {env, []},
+    {modules, []},
+    {maintainers, [
+        "Anton Belyaev <a.belyaev@rbkmoney.com>",
+        "Andrey Mayorov <a.mayorov@rbkmoney.com>"
+    ]},
+    {licenses, []},
+    {links, ["https://github.com/rbkmoney/machinery"]}
+]}.

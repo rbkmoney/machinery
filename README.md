@@ -1,3 +1,3 @@
-# Machinegun client
+# Machinery
 
-Client for [machinegun](https://github.com/rbkmoney/machinegun).
+Client/hander lib for [machinegun](https://github.com/rbkmoney/machinegun).
