@@ -28,7 +28,7 @@
 -type limit()         :: undefined | pos_integer().
 -type direction()     :: forward | backward.
 -type scope()         :: {event_cursor(), limit(), direction()}.
--type signal(T)       :: {init, args(T)} | timeouit.
+-type signal(T)       :: {init, args(T)} | timeout.
 -type machine(T)      :: #{
     namespace         := namespace(),
     id                := id(),
