@@ -62,17 +62,11 @@ get_backend_config() ->
 %% client
 -spec get_backend(opts()) ->
     machinery_mg_backend:backend().
-get_backend(Opts) ->
-    machinery_mg_backend:new(get_backend_opts(Opts)).
-
--spec get_backend_opts(opts()) ->
-    machinery_mg_backend:backend_opts().
-get_backend_opts(#{woody_ctx := WoodyCtx}) ->
-    #{
-        woody_ctx => WoodyCtx,
+get_backend(#{woody_ctx := WoodyCtx}) ->
+    machinery_mg_backend:new(WoodyCtx, #{
         client    => get_woody_client(),
         schema    => config(schema)
-    }.
+    }).
 
 -spec get_woody_client() ->
     machinery_mg_client:woody_client().

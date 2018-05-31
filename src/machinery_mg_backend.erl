@@ -30,7 +30,6 @@
     backend_config  := backend_config()
 }.
 
-
 -type handler(A)       :: {logic_handler(A), handler_config()}. %% handler server spec
 
 -type handler_opts() :: machinery:handler_opts(#{
@@ -51,6 +50,11 @@
 
 -type backend() :: {?MODULE, backend_opts()}.
 
+-type backend_opts_static() :: #{
+    client          := machinery_mg_client:woody_client(),
+    ?BACKEND_CORE_OPTS
+}.
+
 -export_type([backend_config/0]).
 -export_type([handler_config/0]).
 -export_type([logic_handler/1]).
@@ -62,7 +66,7 @@
 %% API
 -export([get_routes/2]).
 -export([get_handler/2]).
--export([new/1]).
+-export([new/2]).
 
 %% Machinery backend
 -behaviour(machinery_backend).
@@ -91,10 +95,10 @@ get_handler({LogicHandler, #{path := Path, backend_config := Config}}, _) ->
         {?MODULE, get_backend_handler_opts(LogicHandler, Config)}
     }}.
 
--spec new(backend_opts()) ->
+-spec new(woody_context:ctx(), backend_opts_static()) ->
     backend().
-new(Opts = #{woody_ctx := _, client := _, schema := _}) ->
-    {?MODULE, Opts}.
+new(WoodyCtx, Opts = #{client := _, schema := _}) ->
+    {?MODULE, Opts#{woody_ctx => WoodyCtx}}.
 
 %% Machinery backend
 
