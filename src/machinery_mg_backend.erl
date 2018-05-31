@@ -30,7 +30,6 @@
     backend_config  := backend_config()
 }.
 
-
 -type handler(A)       :: {logic_handler(A), handler_config()}. %% handler server spec
 
 -type handler_opts() :: machinery:handler_opts(#{
@@ -49,19 +48,18 @@
     ?BACKEND_CORE_OPTS
 }).
 
+-type backend() :: {?MODULE, backend_opts()}.
+
 -type backend_opts_static() :: #{
     client          := machinery_mg_client:woody_client(),
     ?BACKEND_CORE_OPTS
 }.
-
--type backend() :: {?MODULE, backend_opts()}.
 
 -export_type([backend_config/0]).
 -export_type([handler_config/0]).
 -export_type([logic_handler/1]).
 -export_type([handler/1]).
 -export_type([handler_opts/0]).
--export_type([backend_opts_static/0]).
 -export_type([backend_opts/0]).
 -export_type([backend/0]).
 
