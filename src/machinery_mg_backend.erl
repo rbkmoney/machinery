@@ -10,7 +10,7 @@
 
 -type namespace()       :: machinery:namespace().
 -type id()              :: machinery:id().
--type scope()           :: machinery:scope().
+-type range()           :: machinery:range().
 -type args(T)           :: machinery:args(T).
 -type response(T)       :: machinery:response(T).
 -type machine(T)        :: machinery:machine(T).
@@ -115,12 +115,12 @@ start(NS, ID, Args, Opts) ->
             error({failed, NS, ID})
     end.
 
--spec call(namespace(), id(), scope(), args(_), backend_opts()) ->
+-spec call(namespace(), id(), range(), args(_), backend_opts()) ->
     {ok, response(_)} | {error, notfound}.
-call(NS, ID, Scope, Args, Opts) ->
+call(NS, ID, Range, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
-    Descriptor = {NS, ID, Scope},
+    Descriptor = {NS, ID, Range},
     CallArgs = marshal({schema, Schema, {args, call}}, Args),
     case machinery_mg_client:call(marshal(descriptor, Descriptor), CallArgs, Client) of
         {ok, Response} ->
@@ -133,12 +133,12 @@ call(NS, ID, Scope, Args, Opts) ->
             error({failed, NS, ID})
     end.
 
--spec get(namespace(), id(), scope(), backend_opts()) ->
+-spec get(namespace(), id(), range(), backend_opts()) ->
     {ok, machine(_)} | {error, notfound}.
-get(NS, ID, Scope, Opts) ->
+get(NS, ID, Range, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
-    Descriptor = {NS, ID, Scope},
+    Descriptor = {NS, ID, Range},
     case machinery_mg_client:get_machine(marshal(descriptor, Descriptor), Client) of
         {ok, Machine} ->
             {ok, unmarshal({machine, Schema}, Machine)};
@@ -238,11 +238,11 @@ set_aux_state(NewState, _) ->
 %%         'history_range' = marshal(range, {undefined, undefined, forward})
 %%     };
 
-marshal(descriptor, {NS, ID, Scope}) ->
+marshal(descriptor, {NS, ID, Range}) ->
     #mg_stateproc_MachineDescriptor{
         'ns'        = marshal(namespace, NS),
         'ref'       = {'id', marshal(id, ID)},
-        'range'     = marshal(range, Scope)
+        'range'     = marshal(range, Range)
     };
 
 marshal(range, {Cursor, Limit, Direction}) ->

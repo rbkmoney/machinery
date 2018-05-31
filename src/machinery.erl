@@ -27,7 +27,7 @@
 -type event_cursor()  :: undefined | event_id().
 -type limit()         :: undefined | pos_integer().
 -type direction()     :: forward | backward.
--type scope()         :: {event_cursor(), limit(), direction()}.
+-type range()         :: {event_cursor(), limit(), direction()}.
 -type signal(T)       :: {init, args(T)} | timeout.
 -type machine(T)      :: #{
     namespace         := namespace(),
@@ -41,7 +41,7 @@
 
 -export_type([namespace/0]).
 -export_type([id/0]).
--export_type([scope/0]).
+-export_type([range/0]).
 -export_type([args/1]).
 -export_type([response/1]).
 -export_type([machine/1]).
@@ -118,22 +118,22 @@ start(NS, ID, Args, Backend) ->
 call(NS, ID, Args, Backend) ->
     call(NS, ID, {undefined, undefined, forward}, Args, Backend).
 
--spec call(namespace(), id(), scope(), args(_), backend(_)) ->
+-spec call(namespace(), id(), range(), args(_), backend(_)) ->
     {ok, response(_)} | {error, notfound}.
-call(NS, ID, Scope, Args, Backend) ->
+call(NS, ID, Range, Args, Backend) ->
     {Module, Opts} = machinery_utils:get_backend(Backend),
-    machinery_backend:call(Module, NS, ID, Scope, Args, Opts).
+    machinery_backend:call(Module, NS, ID, Range, Args, Opts).
 
 -spec get(namespace(), id(), backend(_)) ->
     {ok, machine(_)} | {error, notfound}.
 get(NS, ID, Backend) ->
     get(NS, ID, {undefined, undefined, forward}, Backend).
 
--spec get(namespace(), id(), scope(), backend(_)) ->
+-spec get(namespace(), id(), range(), backend(_)) ->
     {ok, machine(_)} | {error, notfound}.
-get(NS, ID, Scope, Backend) ->
+get(NS, ID, Range, Backend) ->
     {Module, Opts} = machinery_utils:get_backend(Backend),
-    machinery_backend:get(Module, NS, ID, Scope, Opts).
+    machinery_backend:get(Module, NS, ID, Range, Opts).
 
 %% Internal API
 
