@@ -32,7 +32,7 @@
 -type machine(E, S)   :: #{
     namespace         := namespace(),
     id                := id(),
-    history           := history(T),
+    history           := history(E),
     aux_state         := aux_state(S)
     %% TODO
     %% history_range ?
