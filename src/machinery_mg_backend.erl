@@ -304,7 +304,7 @@ marshal(action, V) ->
 marshal(timer, {timeout, V}) when V > 0 ->
     {timeout, marshal(integer, V)};
 
-marshal(deadline, {deadline, V}) ->
+marshal(timer, {deadline, V}) ->
     {deadline, marshal(timestamp, V)};
 
 marshal(namespace, V) ->

@@ -29,15 +29,17 @@
 -type direction()     :: forward | backward.
 -type range()         :: {event_cursor(), limit(), direction()}.
 -type signal(T)       :: {init, args(T)} | timeout.
--type machine(T)      :: #{
+-type machine(E, S)   :: #{
     namespace         := namespace(),
     id                := id(),
     history           := history(T),
-    aux_state         := aux_state(_)
+    aux_state         := aux_state(S)
     %% TODO
     %% history_range ?
     %% timer ?
 }.
+-type machine(E)      :: machine(E, _).
+
 
 -export_type([namespace/0]).
 -export_type([id/0]).
@@ -45,6 +47,7 @@
 -export_type([args/1]).
 -export_type([response/1]).
 -export_type([machine/1]).
+-export_type([machine/2]).
 
 -type modopts(O) :: module() | {module(), O}.
 
