@@ -93,6 +93,8 @@
     continue             |
     remove.
 
+-export_type([timestamp/0]).
+-export_type([seconds/0]).
 -export_type([result/2]).
 -export_type([action/0]).
 
