@@ -76,7 +76,7 @@
 -export([dispatch_call/4]).
 
 %% Behaviour definition
--type seconds() :: pos_integer().
+-type seconds() :: non_neg_integer().
 -type timer()   ::
     {timeout, seconds()} |
     {deadline, timestamp()}.
