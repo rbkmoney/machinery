@@ -25,7 +25,7 @@
 -type aux_state(T)    :: T.
 
 -type event_cursor()  :: undefined | event_id().
--type limit()         :: undefined | pos_integer().
+-type limit()         :: undefined | non_neg_integer().
 -type direction()     :: forward | backward.
 -type range()         :: {event_cursor(), limit(), direction()}.
 -type signal(T)       :: {init, args(T)} | timeout.
