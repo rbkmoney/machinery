@@ -13,7 +13,7 @@
 -type range()           :: machinery:range().
 -type args(T)           :: machinery:args(T).
 -type response(T)       :: machinery:response(T).
--type machine(T)        :: machinery:machine(T).
+-type machine(E, A)     :: machinery:machine(E, A).
 -type logic_handler(T)  :: machinery:logic_handler(T).
 
 -define(BACKEND_CORE_OPTS,
@@ -138,7 +138,7 @@ call(NS, ID, Range, Args, Opts) ->
     end.
 
 -spec get(namespace(), id(), range(), backend_opts()) ->
-    {ok, machine(_)} | {error, notfound}.
+    {ok, machine(_, _)} | {error, notfound}.
 get(NS, ID, Range, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
@@ -304,7 +304,7 @@ marshal(action, V) ->
 marshal(timer, {timeout, V}) when V > 0 ->
     {timeout, marshal(integer, V)};
 
-marshal(deadline, {deadline, V}) ->
+marshal(timer, {deadline, V}) ->
     {deadline, marshal(timestamp, V)};
 
 marshal(namespace, V) ->

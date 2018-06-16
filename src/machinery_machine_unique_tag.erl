@@ -70,9 +70,9 @@ construct_namespace(NS) ->
 
 %%
 
--type machine()      :: machinery:machine(ev()).
+-type machine()      :: machinery:machine(ev(), _).
 -type handler_opts() :: machinery:handler_opts(_).
--type result()       :: machinery:result(ev()).
+-type result()       :: machinery:result(ev(), _).
 -type response()     :: machinery:response(
     ok | {error, id()}
 ).

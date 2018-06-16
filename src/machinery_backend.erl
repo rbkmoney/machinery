@@ -23,7 +23,7 @@
     {ok, machinery:response(_)} | {error, notfound}.
 
 -callback get(namespace(), id(), range(), backend_opts()) ->
-    {ok, machinery:machine(_)} | {error, notfound}.
+    {ok, machinery:machine(_, _)} | {error, notfound}.
 
 %% API
 
@@ -40,6 +40,6 @@ call(Backend, Namespace, Id, Range, Args, Opts) ->
     Backend:call(Namespace, Id, Range, Args, Opts).
 
 -spec get(backend(), namespace(), id(), range(), backend_opts()) ->
-    {ok, machinery:machine(_)} | {error, notfound}.
+    {ok, machinery:machine(_, _)} | {error, notfound}.
 get(Backend, Namespace, Id, Range, Opts) ->
     Backend:get(Namespace, Id, Range, Opts).
