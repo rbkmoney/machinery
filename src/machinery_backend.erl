@@ -6,6 +6,7 @@
 %% API
 -export([start/5]).
 -export([call/6]).
+-export([repair/6]).
 -export([get/5]).
 
 %% Behaviour definition
@@ -21,6 +22,9 @@
 
 -callback call(namespace(), id(), range(), args(), backend_opts()) ->
     {ok, machinery:response(_)} | {error, notfound}.
+
+-callback repair(namespace(), id(), range(), args(), backend_opts()) ->
+    ok | {error, notfound | working}.
 
 -callback get(namespace(), id(), range(), backend_opts()) ->
     {ok, machinery:machine(_, _)} | {error, notfound}.
@@ -38,6 +42,11 @@ start(Backend, Namespace, Id, Args, Opts) ->
     {ok, machinery:response(_)} | {error, notfound}.
 call(Backend, Namespace, Id, Range, Args, Opts) ->
     Backend:call(Namespace, Id, Range, Args, Opts).
+
+-spec repair(backend(), namespace(), id(), range(), args(), backend_opts()) ->
+    ok | {error, notfound | working}.
+repair(Backend, Namespace, Id, Range, Args, Opts) ->
+    Backend:repair(Namespace, Id, Range, Args, Opts).
 
 -spec get(backend(), namespace(), id(), range(), backend_opts()) ->
     {ok, machinery:machine(_, _)} | {error, notfound}.

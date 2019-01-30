@@ -73,6 +73,7 @@
 
 -export([start/4]).
 -export([call/5]).
+-export([repair/5]).
 -export([get/4]).
 
 %% Woody handler
@@ -135,6 +136,24 @@ call(NS, ID, Range, Args, Opts) ->
             error({namespace_not_found, NS});
         {exception, #mg_stateproc_MachineFailed{}} ->
             error({failed, NS, ID})
+    end.
+
+-spec repair(namespace(), id(), range(), args(_), backend_opts()) ->
+    ok | {error, notfound | working}.
+repair(NS, ID, Range, Args, Opts) ->
+    Client = get_client(Opts),
+    Schema = get_schema(Opts),
+    Descriptor = {NS, ID, Range},
+    CallArgs = marshal({schema, Schema, {args, repair}}, Args),
+    case machinery_mg_client:repair(marshal(descriptor, Descriptor), CallArgs, Client) of
+        {ok, ok} ->
+            ok;
+        {exception, #mg_stateproc_MachineNotFound{}} ->
+            {error, notfound};
+        {exception, #mg_stateproc_MachineAlreadyWorking{}} ->
+            {error, working};
+        {exception, #mg_stateproc_NamespaceNotFound{}} ->
+            error({namespace_not_found, NS})
     end.
 
 -spec get(namespace(), id(), range(), backend_opts()) ->

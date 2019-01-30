@@ -28,7 +28,7 @@
 -type limit()         :: undefined | non_neg_integer().
 -type direction()     :: forward | backward.
 -type range()         :: {event_cursor(), limit(), direction()}.
--type signal(T)       :: {init, args(T)} | timeout.
+-type signal(T)       :: {init, args(T)} | {repair, args(T)} | timeout.
 -type machine(E, A)   :: #{
     namespace         := namespace(),
     id                := id(),
@@ -101,11 +101,16 @@
 -callback init(args(_), machine(E, A), handler_args(_), handler_opts(_)) ->
     result(E, A).
 
+-callback process_repair(args(_), machine(E, A), handler_args(_), handler_opts(_)) ->
+    result(E, A).
+
 -callback process_timeout(machine(E, A), handler_args(_), handler_opts(_)) ->
     result(E, A).
 
 -callback process_call(args(_), machine(E, A), handler_args(_), handler_opts(_)) ->
     {response(_), result(E, A)}.
+
+-optional_callback([process_repair/4]).
 
 %% API
 
@@ -143,6 +148,8 @@ get(NS, ID, Range, Backend) ->
     result(E, A).
 dispatch_signal({init, Args}, Machine, {Handler, HandlerArgs}, Opts) ->
     Handler:init(Args, Machine, HandlerArgs, Opts);
+dispatch_signal({repair, Args}, Machine, {Handler, HandlerArgs}, Opts) ->
+    Handler:process_repair(Args, Machine, HandlerArgs, Opts);
 dispatch_signal(timeout, Machine, {Handler, HandlerArgs}, Opts) ->
     Handler:process_timeout(Machine, HandlerArgs, Opts).
 
