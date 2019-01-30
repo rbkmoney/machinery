@@ -110,8 +110,6 @@
 -callback process_call(args(_), machine(E, A), handler_args(_), handler_opts(_)) ->
     {response(_), result(E, A)}.
 
--optional_callback([process_repair/4]).
-
 %% API
 
 -spec start(namespace(), id(), args(_), backend(_)) ->
