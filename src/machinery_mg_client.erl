@@ -10,6 +10,7 @@
 
 -export([start/4]).
 -export([call/3]).
+-export([repair/3]).
 -export([get_machine/2]).
 
 -type woody_client() :: #{
@@ -32,16 +33,17 @@ new(WoodyClient = #{url := _, event_handler := _}, WoodyCtx) ->
 
 %%
 
--type namespace()              :: mg_proto_base_thrift:'Namespace'().
--type id()                     :: mg_proto_base_thrift:'ID'().
--type args()                   :: mg_proto_state_processing_thrift:'Args'().
--type descriptor()             :: mg_proto_state_processing_thrift:'MachineDescriptor'().
--type call_response()          :: mg_proto_state_processing_thrift:'CallResponse'().
--type machine()                :: mg_proto_state_processing_thrift:'Machine'().
--type namespace_not_found()    :: mg_proto_state_processing_thrift:'NamespaceNotFound'().
--type machine_not_found()      :: mg_proto_state_processing_thrift:'MachineNotFound'().
--type machine_already_exists() :: mg_proto_state_processing_thrift:'MachineAlreadyExists'().
--type machine_failed()         :: mg_proto_state_processing_thrift:'MachineFailed'().
+-type namespace()               :: mg_proto_base_thrift:'Namespace'().
+-type id()                      :: mg_proto_base_thrift:'ID'().
+-type args()                    :: mg_proto_state_processing_thrift:'Args'().
+-type descriptor()              :: mg_proto_state_processing_thrift:'MachineDescriptor'().
+-type call_response()           :: mg_proto_state_processing_thrift:'CallResponse'().
+-type machine()                 :: mg_proto_state_processing_thrift:'Machine'().
+-type namespace_not_found()     :: mg_proto_state_processing_thrift:'NamespaceNotFound'().
+-type machine_not_found()       :: mg_proto_state_processing_thrift:'MachineNotFound'().
+-type machine_already_exists()  :: mg_proto_state_processing_thrift:'MachineAlreadyExists'().
+-type machine_already_working() :: mg_proto_state_processing_thrift:'MachineAlreadyWorking'().
+-type machine_failed()          :: mg_proto_state_processing_thrift:'MachineFailed'().
 
 -spec start(namespace(), id(), args(), client()) ->
     {ok, ok} |
@@ -54,6 +56,12 @@ start(NS, ID, Args, Client) ->
     {exception, namespace_not_found() | machine_not_found() | machine_failed()}.
 call(Descriptor, Args, Client) ->
     issue_call('Call', [Descriptor, Args], Client).
+
+-spec repair(descriptor(), args(), client()) ->
+    {ok, ok} |
+    {exception, namespace_not_found() | machine_not_found() | machine_already_working()}.
+repair(Descriptor, Args, Client) ->
+    issue_call('Repair', [Descriptor, Args], Client).
 
 -spec get_machine(descriptor(), client()) ->
     {ok, machine()} |
