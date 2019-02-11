@@ -134,7 +134,7 @@ call(NS, ID, Range, Args, Backend) ->
 -spec repair(namespace(), id(), args(_), backend(_)) ->
     ok | {error, notfound | working}.
 repair(NS, ID, Args, Backend) ->
-    call(NS, ID, {undefined, undefined, forward}, Args, Backend).
+    repair(NS, ID, {undefined, undefined, forward}, Args, Backend).
 
 -spec repair(namespace(), id(), range(), args(_), backend(_)) ->
     ok | {error, notfound | working}.
