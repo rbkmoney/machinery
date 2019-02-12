@@ -68,6 +68,8 @@
 -export([start/4]).
 -export([call/4]).
 -export([call/5]).
+-export([repair/4]).
+-export([repair/5]).
 -export([get/3]).
 -export([get/4]).
 
@@ -128,6 +130,17 @@ call(NS, ID, Args, Backend) ->
 call(NS, ID, Range, Args, Backend) ->
     {Module, Opts} = machinery_utils:get_backend(Backend),
     machinery_backend:call(Module, NS, ID, Range, Args, Opts).
+
+-spec repair(namespace(), id(), args(_), backend(_)) ->
+    ok | {error, notfound | working}.
+repair(NS, ID, Args, Backend) ->
+    repair(NS, ID, {undefined, undefined, forward}, Args, Backend).
+
+-spec repair(namespace(), id(), range(), args(_), backend(_)) ->
+    ok | {error, notfound | working}.
+repair(NS, ID, Range, Args, Backend) ->
+    {Module, Opts} = machinery_utils:get_backend(Backend),
+    machinery_backend:repair(Module, NS, ID, Range, Args, Opts).
 
 -spec get(namespace(), id(), backend(_)) ->
     {ok, machine(_, _)} | {error, notfound}.
