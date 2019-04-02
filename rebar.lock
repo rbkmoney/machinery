@@ -5,7 +5,7 @@
  {<<"cowlib">>,{pkg,<<"cowlib">>,<<"2.6.0">>},2},
  {<<"genlib">>,
   {git,"https://github.com/rbkmoney/genlib.git",
-       {ref,"a6b9f52d61372cdbea6c5967053662dd3309e0d7"}},
+       {ref,"41920d7774d119c294f3aaba4043ced12da2a815"}},
   0},
  {<<"gproc">>,{pkg,<<"gproc">>,<<"0.8.0">>},1},
  {<<"hackney">>,{pkg,<<"hackney">>,<<"1.15.0">>},1},
