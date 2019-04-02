@@ -16,7 +16,7 @@
 -type woody_client() :: #{
     url            := woody:url(),
     event_handler  := woody:ev_handler(),
-    transport_opts => woody_client_thrift_http_transport:options()
+    transport_opts => woody_client_thrift_http_transport:transport_options()
 }.
 
 -opaque client() :: {woody_client(), woody_context:ctx()}.
