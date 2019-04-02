@@ -346,13 +346,11 @@ marshal({schema, Schema, T}, V) ->
     % Marshal properly
     machinery_mg_schema:marshal(Schema, T, V);
 
-marshal(timestamp, {{Date, Time}, USec} = V) ->
+marshal(timestamp, {{Date, Time}, USec}) ->
     {ok, Result} = rfc3339:format({Date, Time, USec, 0}),
-    if is_binary(Result) ->
-        Result;
-    true ->
-        error(badarg, {timestamp, V})
-    end;
+    % unsure that Result is actually a binary
+    {true, _} = {is_binary(Result), Result},
+    Result;
 
 marshal({list, T}, V) when is_list(V) ->
     [marshal(T, E) || E <- V];
