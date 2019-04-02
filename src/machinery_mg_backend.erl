@@ -348,7 +348,7 @@ marshal({schema, Schema, T}, V) ->
 
 marshal(timestamp, {{Date, Time}, USec} = V) ->
     {ok, Result} = rfc3339:format({Date, Time, USec, 0}),
-    % unsure that Result is actually a binary
+    % ensure that Result is actually a binary
     {true, _} = {is_binary(Result), V},
     Result;
 
