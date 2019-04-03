@@ -10,7 +10,8 @@
 -type woody_server_config() :: #{
     ip             := inet:ip_address(),
     port           := inet:port_number(),
-    protocol_opts  => woody_server_thrift_http_handler:protocol_opts()
+    protocol_opts  => woody_server_thrift_http_handler:protocol_opts(),
+    transport_opts => woody_server_thrift_http_handler:transport_opts()
 }.
 
 -type route_opts() :: #{
