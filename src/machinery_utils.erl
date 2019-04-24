@@ -15,7 +15,7 @@
 }.
 
 -type route_opts() :: #{
-    event_handler  := woody:ev_handler(),
+    event_handler  := woody:ev_handler() | [woody:ev_handler()],
     handler_limits => woody_server_thrift_http_handler:handler_limits()
 }.
 
