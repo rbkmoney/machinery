@@ -279,9 +279,9 @@ marshal({history, Schema}, V) ->
     marshal({list, {event, Schema}}, V);
 marshal({event, Schema}, {EventID, CreatedAt, Body}) ->
     #mg_stateproc_Event{
-        'id'            = marshal(event_id, EventID),
-        'created_at'    = marshal(timestamp, CreatedAt),
-        'event_payload' = marshal({schema, Schema, event}, Body)
+        'id'         = marshal(event_id, EventID),
+        'created_at' = marshal(timestamp, CreatedAt),
+        'data'       = marshal({schema, Schema, event}, Body)
     };
 
 marshal({signal, Schema}, {init, Args}) ->
@@ -308,10 +308,15 @@ marshal({call_result, Schema}, {Response, #{} = V}) ->
 
 marshal({state_change, Schema}, #{} = V) ->
     #mg_stateproc_MachineStateChange{
-        events = marshal({list, {schema, Schema, event}}, maps:get(events, V, [])),
+        events = [
+            #mg_stateproc_Content{data = Event}
+            || Event <- marshal({list, {schema, Schema, event}}, maps:get(events, V, []))
+        ],
         % TODO
         % Provide this to logic handlers as well
-        aux_state = marshal({schema, Schema, aux_state}, maps:get(aux_state, V, undefined))
+        aux_state = #mg_stateproc_Content{
+            data = marshal({schema, Schema, aux_state}, maps:get(aux_state, V, undefined))
+        }
     };
 
 marshal(action, V) when is_list(V) ->
@@ -427,7 +432,7 @@ unmarshal(
         'id'            = ID,
         'history'       = History,
         'history_range' = Range,
-        'aux_state'     = AuxState
+        'aux_state'     = #mg_stateproc_Content{format_version = _Version, data = AuxState}
     }
 ) ->
     #{
@@ -444,9 +449,9 @@ unmarshal({history, Schema}, V) ->
 unmarshal(
     {event, Schema},
     #mg_stateproc_Event{
-        'id'            = EventID,
-        'created_at'    = CreatedAt,
-        'event_payload' = Payload
+        'id'         = EventID,
+        'created_at' = CreatedAt,
+        'data'       = Payload
     }
 ) ->
     {unmarshal(event_id, EventID), unmarshal(timestamp, CreatedAt), unmarshal({schema, Schema, event}, Payload)};
