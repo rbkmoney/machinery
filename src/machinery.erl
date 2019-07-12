@@ -45,6 +45,7 @@
 -export_type([args/1]).
 -export_type([response/1]).
 -export_type([machine/2]).
+-export_type([event/1]).
 
 -type modopts(O) :: module() | {module(), O}.
 
