@@ -367,7 +367,7 @@ marshal({maybe, T}, V) ->
     marshal(T, V);
 
 marshal({enum, Choices = [_ | _]} = T, V) when is_atom(V) ->
-    _ = lists:member(V, Choices) orelse error(badarg, {T, V}),
+    _ = lists:member(V, Choices) orelse erlang:error(badarg, [T, V]),
     V;
 
 marshal(atom, V) when is_atom(V) ->
@@ -380,7 +380,7 @@ marshal(integer, V) when is_integer(V) ->
     V;
 
 marshal(T, V) ->
-    error(badarg, {T, V}).
+    erlang:error(badarg, [T, V]).
 
 apply_action({set_timer, V}, CA) ->
     CA#mg_stateproc_ComplexAction{
@@ -488,9 +488,9 @@ unmarshal(timestamp, V) when is_binary(V) ->
         {ok, {Date, Time, USec, TZOffset}} when TZOffset == undefined orelse TZOffset == 0 ->
             {{Date, Time}, USec};
         {ok, _} ->
-            error(badarg, {timestamp, V, badoffset});
+            erlang:error(badarg, [timestamp, V, badoffset]);
         {error, Reason} ->
-            error(badarg, {timestamp, V, Reason})
+            erlang:error(badarg, [timestamp, V, Reason])
     end;
 
 unmarshal({list, T}, V) when is_list(V) ->
@@ -507,7 +507,7 @@ unmarshal({enum, Choices = [_ | _]} = T, V) when is_atom(V) ->
         true ->
             V;
         false ->
-            error(badarg, {T, V})
+            erlang:error(badarg, [T, V])
     end;
 
 unmarshal(atom, V) when is_binary(V) ->
@@ -520,4 +520,4 @@ unmarshal(integer, V) when is_integer(V) ->
     V;
 
 unmarshal(T, V) ->
-    error(badarg, {T, V}).
+    erlang:error(badarg, [T, V]).
