@@ -325,7 +325,7 @@ marshal(action, V) when is_list(V) ->
 marshal(action, V) ->
     marshal(action, [V]);
 
-marshal(timer, {timeout, V}) when V > 0 ->
+marshal(timer, {timeout, V}) ->
     {timeout, marshal(integer, V)};
 
 marshal(timer, {deadline, V}) ->
