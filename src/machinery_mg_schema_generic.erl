@@ -67,7 +67,7 @@ marshal(V) when is_tuple(V) ->
 marshal(V) when is_map(V) ->
     wrap([marshal(map), wrap(genlib_map:truemap(fun (Ke, Ve) -> {marshal(Ke), marshal(Ve)} end, V))]);
 marshal(V) ->
-    error({badarg, V}).
+    erlang:error(badarg, [V]).
 
 -spec unmarshal(machinery_msgpack:t()) ->
     eterm().
