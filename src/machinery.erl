@@ -91,11 +91,14 @@
 }.
 
 -type action() ::
-    {set_timer, timer()} |
-    unset_timer          |
-    continue             |
+    {set_timer, timer()}                     |
+    {set_timer, timer(), range()}            |
+    {set_timer, timer(), range(), seconds()} |
+    unset_timer                              |
+    continue                                 |
     remove.
 
+-export_type([timer/0]).
 -export_type([timestamp/0]).
 -export_type([seconds/0]).
 -export_type([result/2]).
