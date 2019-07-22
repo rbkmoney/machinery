@@ -16,6 +16,7 @@
 -export([untag_success/1]).
 -export([conflict_untag_failure/1]).
 -export([reset_tag_success/1]).
+-export([tag_unset_timely/1]).
 
 -import(ct_helper, [
     cfg/2,
@@ -39,7 +40,8 @@ all() ->
         single_tag_set_only    ,
         untag_success          ,
         conflict_untag_failure ,
-        reset_tag_success
+        reset_tag_success      ,
+        tag_unset_timely
     ].
 
 -spec init_per_suite(config()) -> config().
@@ -144,6 +146,17 @@ reset_tag_success(C) ->
     ok = machinery_machine_unique_tag_mg_example:untag(payproc, Tag, ID, Opts),
     ok = machinery_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts),
     {ok, ID} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
+
+-spec tag_unset_timely(config()) -> test_return().
+
+tag_unset_timely(C) ->
+    Tag = genlib:unique(),
+    ID = pid_to_binary(self()),
+    Opts = #{woody_ctx => get_woody_ctx(C)},
+    ok = machinery_machine_unique_tag_mg_example:tag_until(payproc, Tag, ID, {timeout, 1}, Opts),
+    {ok, ID} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts),
+    ok = timer:sleep(2 * 1000), % twice as much as needed
+    {error, unset} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
 
 %%
 

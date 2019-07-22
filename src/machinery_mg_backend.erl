@@ -387,6 +387,23 @@ apply_action({set_timer, V}, CA) ->
         timer = {set_timer, #mg_stateproc_SetTimerAction{timer = marshal(timer, V)}}
     };
 
+apply_action({set_timer, T, Range}, CA) ->
+    CA#mg_stateproc_ComplexAction{
+        timer = {set_timer, #mg_stateproc_SetTimerAction{
+            timer   = marshal(timer, T),
+            range   = marshal(range, Range)
+        }}
+    };
+
+apply_action({set_timer, T, Range, HandlingTimeout}, CA) ->
+    CA#mg_stateproc_ComplexAction{
+        timer = {set_timer, #mg_stateproc_SetTimerAction{
+            timer   = marshal(timer, T),
+            range   = marshal(range, Range),
+            timeout = marshal(integer, HandlingTimeout)
+        }}
+    };
+
 apply_action(unset_timer, CA) ->
     CA#mg_stateproc_ComplexAction{
         timer = {unset_timer, #mg_stateproc_UnsetTimerAction{}}

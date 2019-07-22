@@ -4,12 +4,14 @@
 
 -export([child_spec/1]).
 -export([tag/4]).
+-export([tag_until/5]).
 -export([untag/4]).
 -export([get/3]).
 
 -type id()         :: machinery:id().
 -type namespace()  :: machinery:namespace().
 -type tag()        :: machinery_machine_unique_tag:tag().
+-type timer()      :: machinery:timer().
 
 -type opts()       :: #{
     woody_ctx := woody_context:ctx()
@@ -28,6 +30,11 @@ child_spec(Id) ->
     ok | {error, {set, id()}}.
 tag(NS, Tag, ID, Opts) ->
     machinery_machine_unique_tag:tag(NS, Tag, ID, get_backend(Opts)).
+
+-spec tag_until(namespace(), tag(), id(), timer(), opts()) ->
+    ok | {error, {set, id()}}.
+tag_until(NS, Tag, ID, Timer, Opts) ->
+    machinery_machine_unique_tag:tag_until(NS, Tag, ID, Timer, get_backend(Opts)).
 
 -spec untag(namespace(), tag(), id(), opts()) ->
     ok | {error, {set, id()}}.

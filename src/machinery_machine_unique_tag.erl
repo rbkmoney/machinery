@@ -7,11 +7,13 @@
 
 -type id()        :: machinery:id().
 -type namespace() :: machinery:namespace().
+-type timer()     :: machinery:timer().
 -type tag()       :: binary().
 
 -export_type([tag/0]).
 
 -export([tag/4]).
+-export([tag_until/5]).
 -export([untag/4]).
 -export([get/3]).
 
@@ -40,6 +42,23 @@ tag(NS, Tag, ID, Backend) ->
                     {error, {set, IDWas}};
                 {error, unset} ->
                     tag(NS, Tag, ID, Backend)
+            end
+    end.
+
+-spec tag_until(namespace(), tag(), id(), timer(), machinery:backend(_)) ->
+    ok | {error, {set, id()}}.
+tag_until(NS, Tag, ID, Timer, Backend) ->
+    case machinery:start(construct_namespace(NS), Tag, {tag, ID, Timer}, Backend) of
+        ok ->
+            ok;
+        {error, exists} ->
+            case get(NS, Tag, Backend) of
+                {ok, ID} ->
+                    ok;
+                {ok, IDWas} ->
+                    {error, {set, IDWas}};
+                {error, unset} ->
+                    tag_until(NS, Tag, ID, Timer, Backend)
             end
     end.
 
@@ -78,21 +97,26 @@ construct_namespace(NS) ->
     ok | {error, id()}
 ).
 
--type ev() ::
-    {tag_set, id()} |
-    tag_unset.
+-type ev() :: id().
 
 -spec init({tag, id()}, machine(), undefined, handler_opts()) ->
     result().
 init({tag, ID}, _Machine, _, _Opts) ->
     #{
         events => [ID]
+    };
+init({tag, ID, Timer}, _Machine, _, _Opts) ->
+    #{
+        events => [ID],
+        action => [{set_timer, Timer, {undefined, 0, forward}}]
     }.
 
 -spec process_timeout(machine(), undefined, handler_opts()) ->
     result().
 process_timeout(#{}, _, _Opts) ->
-    #{}.
+    #{
+        action => [remove]
+    }.
 
 -spec process_call({untag, id()}, machine(), undefined, handler_opts()) ->
     {response(), result()}.
