@@ -13,6 +13,7 @@
 
 -type namespace()    :: machinery:namespace().
 -type id()           :: machinery:id().
+-type tag()          :: machinery:tag().
 -type range()        :: machinery:range().
 -type args()         :: machinery:args(_).
 -type backend_opts() :: machinery:backend_opts(_).
@@ -38,10 +39,10 @@
 start(Backend, Namespace, Id, Args, Opts) ->
     Backend:start(Namespace, Id, Args, Opts).
 
--spec call(backend(), namespace(), id(), range(), args(), backend_opts()) ->
+-spec call(backend(), namespace(), id() | tag(), range(), args(), backend_opts()) ->
     {ok, machinery:response(_)} | {error, notfound}.
-call(Backend, Namespace, Id, Range, Args, Opts) ->
-    Backend:call(Namespace, Id, Range, Args, Opts).
+call(Backend, Namespace, IDorTag, Range, Args, Opts) ->
+    Backend:call(Namespace, IDorTag, Range, Args, Opts).
 
 -spec repair(backend(), namespace(), id(), range(), args(), backend_opts()) ->
     ok | {error, notfound | working}.
