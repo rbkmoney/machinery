@@ -96,6 +96,7 @@
     {set_timer, timer()}                     |
     {set_timer, timer(), range()}            |
     {set_timer, timer(), range(), seconds()} |
+    {tag, binary()}                          |
     unset_timer                              |
     continue                                 |
     remove.
@@ -137,27 +138,27 @@ call(NS, IDorTag, Range, Args, Backend) ->
     {Module, Opts} = machinery_utils:get_backend(Backend),
     machinery_backend:call(Module, NS, IDorTag, Range, Args, Opts).
 
--spec repair(namespace(), id(), args(_), backend(_)) ->
+-spec repair(namespace(), id() | tag(), args(_), backend(_)) ->
     ok | {error, notfound | working}.
-repair(NS, ID, Args, Backend) ->
-    repair(NS, ID, {undefined, undefined, forward}, Args, Backend).
+repair(NS, IDorTag, Args, Backend) ->
+    repair(NS, IDorTag, {undefined, undefined, forward}, Args, Backend).
 
--spec repair(namespace(), id(), range(), args(_), backend(_)) ->
+-spec repair(namespace(), id() | tag(), range(), args(_), backend(_)) ->
     ok | {error, notfound | working}.
-repair(NS, ID, Range, Args, Backend) ->
+repair(NS, IDorTag, Range, Args, Backend) ->
     {Module, Opts} = machinery_utils:get_backend(Backend),
-    machinery_backend:repair(Module, NS, ID, Range, Args, Opts).
+    machinery_backend:repair(Module, NS, IDorTag, Range, Args, Opts).
 
--spec get(namespace(), id(), backend(_)) ->
+-spec get(namespace(), id() | tag(), backend(_)) ->
     {ok, machine(_, _)} | {error, notfound}.
-get(NS, ID, Backend) ->
-    get(NS, ID, {undefined, undefined, forward}, Backend).
+get(NS, IDorTag, Backend) ->
+    get(NS, IDorTag, {undefined, undefined, forward}, Backend).
 
--spec get(namespace(), id(), range(), backend(_)) ->
+-spec get(namespace(), id() | tag(), range(), backend(_)) ->
     {ok, machine(_, _)} | {error, notfound}.
-get(NS, ID, Range, Backend) ->
+get(NS, IDorTag, Range, Backend) ->
     {Module, Opts} = machinery_utils:get_backend(Backend),
-    machinery_backend:get(Module, NS, ID, Range, Opts).
+    machinery_backend:get(Module, NS, IDorTag, Range, Opts).
 
 %% Internal API
 

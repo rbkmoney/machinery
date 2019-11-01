@@ -44,12 +44,12 @@ start(Backend, Namespace, Id, Args, Opts) ->
 call(Backend, Namespace, IDorTag, Range, Args, Opts) ->
     Backend:call(Namespace, IDorTag, Range, Args, Opts).
 
--spec repair(backend(), namespace(), id(), range(), args(), backend_opts()) ->
+-spec repair(backend(), namespace(), id() | tag(), range(), args(), backend_opts()) ->
     ok | {error, notfound | working}.
-repair(Backend, Namespace, Id, Range, Args, Opts) ->
-    Backend:repair(Namespace, Id, Range, Args, Opts).
+repair(Backend, Namespace, IDorTag, Range, Args, Opts) ->
+    Backend:repair(Namespace, IDorTag, Range, Args, Opts).
 
--spec get(backend(), namespace(), id(), range(), backend_opts()) ->
+-spec get(backend(), namespace(), id() | tag(), range(), backend_opts()) ->
     {ok, machinery:machine(_, _)} | {error, notfound}.
-get(Backend, Namespace, Id, Range, Opts) ->
-    Backend:get(Namespace, Id, Range, Opts).
+get(Backend, Namespace, IDorTag, Range, Opts) ->
+    Backend:get(Namespace, IDorTag, Range, Opts).

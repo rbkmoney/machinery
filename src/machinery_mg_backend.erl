@@ -139,12 +139,12 @@ call(NS, IDorTag, Range, Args, Opts) ->
             error({failed, NS, ID})
     end.
 
--spec repair(namespace(), id(), range(), args(_), backend_opts()) ->
+-spec repair(namespace(), id() | tag(), range(), args(_), backend_opts()) ->
     ok | {error, notfound | working}.
-repair(NS, ID, Range, Args, Opts) ->
+repair(NS, IDorTag, Range, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
-    Descriptor = {NS, ID, Range},
+    Descriptor = {NS, IDorTag, Range},
     CallArgs = marshal({schema, Schema, {args, repair}}, Args),
     case machinery_mg_client:repair(marshal(descriptor, Descriptor), CallArgs, Client) of
         {ok, ok} ->
@@ -157,12 +157,12 @@ repair(NS, ID, Range, Args, Opts) ->
             error({namespace_not_found, NS})
     end.
 
--spec get(namespace(), id(), range(), backend_opts()) ->
+-spec get(namespace(), id() | tag(), range(), backend_opts()) ->
     {ok, machine(_, _)} | {error, notfound}.
-get(NS, ID, Range, Opts) ->
+get(NS, IDorTag, Range, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
-    Descriptor = {NS, ID, Range},
+    Descriptor = {NS, IDorTag, Range},
     case machinery_mg_client:get_machine(marshal(descriptor, Descriptor), Client) of
         {ok, Machine} ->
             {ok, unmarshal({machine, Schema}, Machine)};
@@ -430,6 +430,11 @@ apply_action(remove, CA) ->
         remove = #mg_stateproc_RemoveAction{}
     }.
 
+apply_action({tag, Tag}, CA) ->
+    CA#mg_stateproc_ComplexAction{
+        tag = #mg_stateproc_TagAction{tag = Tag}
+    }.
+
 %%
 %% No unmarshalling for the decriptor required by the protocol so far.
 %%
@@ -498,9 +503,6 @@ unmarshal(namespace, V) ->
 
 unmarshal(id, V) ->
     unmarshal(string, V);
-
-unmarshal(tag, V) ->
-    {tag, unmarshal(string, V)};
 
 unmarshal(event_id, V) ->
     unmarshal(integer, V);
