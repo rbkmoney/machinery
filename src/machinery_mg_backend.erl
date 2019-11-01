@@ -136,7 +136,7 @@ call(NS, IDorTag, Range, Args, Opts) ->
         {exception, #mg_stateproc_NamespaceNotFound{}} ->
             error({namespace_not_found, NS});
         {exception, #mg_stateproc_MachineFailed{}} ->
-            error({failed, NS, ID})
+            error({failed, NS, IDorTag})
     end.
 
 -spec repair(namespace(), id() | tag(), range(), args(_), backend_opts()) ->
@@ -428,7 +428,7 @@ apply_action(continue, CA) ->
 apply_action(remove, CA) ->
     CA#mg_stateproc_ComplexAction{
         remove = #mg_stateproc_RemoveAction{}
-    }.
+    };
 
 apply_action({tag, Tag}, CA) ->
     CA#mg_stateproc_ComplexAction{
