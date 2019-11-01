@@ -10,6 +10,7 @@
 
 -type namespace()       :: machinery:namespace().
 -type id()              :: machinery:id().
+-type tag()             :: machinery:tag().
 -type range()           :: machinery:range().
 -type args(T)           :: machinery:args(T).
 -type response(T)       :: machinery:response(T).
@@ -120,12 +121,12 @@ start(NS, ID, Args, Opts) ->
             error({failed, NS, ID})
     end.
 
--spec call(namespace(), id(), range(), args(_), backend_opts()) ->
+-spec call(namespace(), id() | tag(), range(), args(_), backend_opts()) ->
     {ok, response(_)} | {error, notfound}.
-call(NS, ID, Range, Args, Opts) ->
+call(NS, IDorTag, Range, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
-    Descriptor = {NS, ID, Range},
+    Descriptor = {NS, IDorTag, Range},
     CallArgs = marshal({schema, Schema, {args, call}}, Args),
     case machinery_mg_client:call(marshal(descriptor, Descriptor), CallArgs, Client) of
         {ok, Response} ->
@@ -261,6 +262,13 @@ set_aux_state(NewState, _) ->
 %%         'history_range' = marshal(range, {undefined, undefined, forward})
 %%     };
 
+marshal(descriptor, {NS, {tag, Tag}, Range}) ->
+    #mg_stateproc_MachineDescriptor{
+        'ns'        = marshal(namespace, NS),
+        'ref'       = {'tag', marshal(tag, Tag)},
+        'range'     = marshal(range, Range)
+    };
+
 marshal(descriptor, {NS, ID, Range}) ->
     #mg_stateproc_MachineDescriptor{
         'ns'        = marshal(namespace, NS),
@@ -335,6 +343,9 @@ marshal(namespace, V) ->
     marshal(atom, V);
 
 marshal(id, V) ->
+    marshal(string, V);
+
+marshal(tag, V) ->
     marshal(string, V);
 
 marshal(event_id, V) ->
@@ -487,6 +498,9 @@ unmarshal(namespace, V) ->
 
 unmarshal(id, V) ->
     unmarshal(string, V);
+
+unmarshal(tag, V) ->
+    {tag, unmarshal(string, V)};
 
 unmarshal(event_id, V) ->
     unmarshal(integer, V);
