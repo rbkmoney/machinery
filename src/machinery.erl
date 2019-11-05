@@ -44,6 +44,7 @@
 -export_type([namespace/0]).
 -export_type([id/0]).
 -export_type([tag/0]).
+-export_type([ref/0]).
 -export_type([range/0]).
 -export_type([args/1]).
 -export_type([response/1]).
