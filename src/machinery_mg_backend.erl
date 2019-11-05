@@ -9,6 +9,7 @@
 -include_lib("mg_proto/include/mg_proto_state_processing_thrift.hrl").
 
 -type namespace()       :: machinery:namespace().
+-type ref()             :: machinery:ref().
 -type id()              :: machinery:id().
 -type tag()             :: machinery:tag().
 -type range()           :: machinery:range().
@@ -121,12 +122,12 @@ start(NS, ID, Args, Opts) ->
             error({failed, NS, ID})
     end.
 
--spec call(namespace(), id() | tag(), range(), args(_), backend_opts()) ->
+-spec call(namespace(), ref(), range(), args(_), backend_opts()) ->
     {ok, response(_)} | {error, notfound}.
-call(NS, IDorTag, Range, Args, Opts) ->
+call(NS, Ref, Range, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
-    Descriptor = {NS, IDorTag, Range},
+    Descriptor = {NS, Ref, Range},
     CallArgs = marshal({schema, Schema, {args, call}}, Args),
     case machinery_mg_client:call(marshal(descriptor, Descriptor), CallArgs, Client) of
         {ok, Response} ->
@@ -136,15 +137,15 @@ call(NS, IDorTag, Range, Args, Opts) ->
         {exception, #mg_stateproc_NamespaceNotFound{}} ->
             error({namespace_not_found, NS});
         {exception, #mg_stateproc_MachineFailed{}} ->
-            error({failed, NS, IDorTag})
+            error({failed, NS, Ref})
     end.
 
--spec repair(namespace(), id() | tag(), range(), args(_), backend_opts()) ->
+-spec repair(namespace(), ref(), range(), args(_), backend_opts()) ->
     ok | {error, notfound | working}.
-repair(NS, IDorTag, Range, Args, Opts) ->
+repair(NS, Ref, Range, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
-    Descriptor = {NS, IDorTag, Range},
+    Descriptor = {NS, Ref, Range},
     CallArgs = marshal({schema, Schema, {args, repair}}, Args),
     case machinery_mg_client:repair(marshal(descriptor, Descriptor), CallArgs, Client) of
         {ok, ok} ->
@@ -157,12 +158,12 @@ repair(NS, IDorTag, Range, Args, Opts) ->
             error({namespace_not_found, NS})
     end.
 
--spec get(namespace(), id() | tag(), range(), backend_opts()) ->
+-spec get(namespace(), ref(), range(), backend_opts()) ->
     {ok, machine(_, _)} | {error, notfound}.
-get(NS, IDorTag, Range, Opts) ->
+get(NS, Ref, Range, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
-    Descriptor = {NS, IDorTag, Range},
+    Descriptor = {NS, Ref, Range},
     case machinery_mg_client:get_machine(marshal(descriptor, Descriptor), Client) of
         {ok, Machine} ->
             {ok, unmarshal({machine, Schema}, Machine)};
@@ -262,17 +263,10 @@ set_aux_state(NewState, _) ->
 %%         'history_range' = marshal(range, {undefined, undefined, forward})
 %%     };
 
-marshal(descriptor, {NS, {tag, Tag}, Range}) ->
+marshal(descriptor, {NS, Ref, Range}) ->
     #mg_stateproc_MachineDescriptor{
         'ns'        = marshal(namespace, NS),
-        'ref'       = {'tag', marshal(tag, Tag)},
-        'range'     = marshal(range, Range)
-    };
-
-marshal(descriptor, {NS, ID, Range}) ->
-    #mg_stateproc_MachineDescriptor{
-        'ns'        = marshal(namespace, NS),
-        'ref'       = {'id', marshal(id, ID)},
+        'ref'       = marshal('ref', Ref),
         'range'     = marshal(range, Range)
     };
 
@@ -341,6 +335,12 @@ marshal(timer, {deadline, V}) ->
 
 marshal(namespace, V) ->
     marshal(atom, V);
+
+marshal(ref, V) when is_binary(V) ->
+    {id, marshal(id, V)};
+
+marshal(ref, {tag, V}) ->
+    {tag, marshal(tag, V)};
 
 marshal(id, V) ->
     marshal(string, V);
