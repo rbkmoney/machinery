@@ -11,9 +11,9 @@
 -module(machinery).
 
 -type namespace()     :: atom().
--type ref()           :: id() | tag().
+-type ref()           :: id() | {tag, tag()}.
 -type id()            :: binary().
--type tag()           :: {tag, binary()}.
+-type tag()           :: binary().
 -type args(T)         :: T.
 -type response(T)     :: T.
 
@@ -97,7 +97,7 @@
     {set_timer, timer()}                     |
     {set_timer, timer(), range()}            |
     {set_timer, timer(), range(), seconds()} |
-    {tag, binary()}                          |
+    {tag, tag()}                             |
     unset_timer                              |
     continue                                 |
     remove.

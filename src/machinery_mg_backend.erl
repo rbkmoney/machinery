@@ -11,7 +11,6 @@
 -type namespace()       :: machinery:namespace().
 -type ref()             :: machinery:ref().
 -type id()              :: machinery:id().
--type tag()             :: machinery:tag().
 -type range()           :: machinery:range().
 -type args(T)           :: machinery:args(T).
 -type response(T)       :: machinery:response(T).
@@ -266,7 +265,7 @@ set_aux_state(NewState, _) ->
 marshal(descriptor, {NS, Ref, Range}) ->
     #mg_stateproc_MachineDescriptor{
         'ns'        = marshal(namespace, NS),
-        'ref'       = marshal('ref', Ref),
+        'ref'       = marshal(ref, Ref),
         'range'     = marshal(range, Range)
     };
 
@@ -432,7 +431,9 @@ apply_action(remove, CA) ->
 
 apply_action({tag, Tag}, CA) ->
     CA#mg_stateproc_ComplexAction{
-        tag = #mg_stateproc_TagAction{tag = Tag}
+        tag = #mg_stateproc_TagAction{
+            tag = marshal(tag, Tag)
+        }
     }.
 
 %%
