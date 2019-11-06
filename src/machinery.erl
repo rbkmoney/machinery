@@ -11,7 +11,9 @@
 -module(machinery).
 
 -type namespace()     :: atom().
+-type ref()           :: id() | {tag, tag()}.
 -type id()            :: binary().
+-type tag()           :: binary().
 -type args(T)         :: T.
 -type response(T)     :: T.
 
@@ -41,6 +43,8 @@
 
 -export_type([namespace/0]).
 -export_type([id/0]).
+-export_type([tag/0]).
+-export_type([ref/0]).
 -export_type([range/0]).
 -export_type([args/1]).
 -export_type([response/1]).
@@ -94,6 +98,7 @@
     {set_timer, timer()}                     |
     {set_timer, timer(), range()}            |
     {set_timer, timer(), range(), seconds()} |
+    {tag, tag()}                             |
     unset_timer                              |
     continue                                 |
     remove.
@@ -124,38 +129,38 @@ start(NS, ID, Args, Backend) ->
     {Module, Opts} = machinery_utils:get_backend(Backend),
     machinery_backend:start(Module, NS, ID, Args, Opts).
 
--spec call(namespace(), id(), args(_), backend(_)) ->
+-spec call(namespace(), ref(), args(_), backend(_)) ->
     {ok, response(_)} | {error, notfound}.
-call(NS, ID, Args, Backend) ->
-    call(NS, ID, {undefined, undefined, forward}, Args, Backend).
+call(NS, Ref, Args, Backend) ->
+    call(NS, Ref, {undefined, undefined, forward}, Args, Backend).
 
--spec call(namespace(), id(), range(), args(_), backend(_)) ->
+-spec call(namespace(), ref(), range(), args(_), backend(_)) ->
     {ok, response(_)} | {error, notfound}.
-call(NS, ID, Range, Args, Backend) ->
+call(NS, Ref, Range, Args, Backend) ->
     {Module, Opts} = machinery_utils:get_backend(Backend),
-    machinery_backend:call(Module, NS, ID, Range, Args, Opts).
+    machinery_backend:call(Module, NS, Ref, Range, Args, Opts).
 
--spec repair(namespace(), id(), args(_), backend(_)) ->
+-spec repair(namespace(), ref(), args(_), backend(_)) ->
     ok | {error, notfound | working}.
-repair(NS, ID, Args, Backend) ->
-    repair(NS, ID, {undefined, undefined, forward}, Args, Backend).
+repair(NS, Ref, Args, Backend) ->
+    repair(NS, Ref, {undefined, undefined, forward}, Args, Backend).
 
--spec repair(namespace(), id(), range(), args(_), backend(_)) ->
+-spec repair(namespace(), ref(), range(), args(_), backend(_)) ->
     ok | {error, notfound | working}.
-repair(NS, ID, Range, Args, Backend) ->
+repair(NS, Ref, Range, Args, Backend) ->
     {Module, Opts} = machinery_utils:get_backend(Backend),
-    machinery_backend:repair(Module, NS, ID, Range, Args, Opts).
+    machinery_backend:repair(Module, NS, Ref, Range, Args, Opts).
 
--spec get(namespace(), id(), backend(_)) ->
+-spec get(namespace(), ref(), backend(_)) ->
     {ok, machine(_, _)} | {error, notfound}.
-get(NS, ID, Backend) ->
-    get(NS, ID, {undefined, undefined, forward}, Backend).
+get(NS, Ref, Backend) ->
+    get(NS, Ref, {undefined, undefined, forward}, Backend).
 
--spec get(namespace(), id(), range(), backend(_)) ->
+-spec get(namespace(), ref(), range(), backend(_)) ->
     {ok, machine(_, _)} | {error, notfound}.
-get(NS, ID, Range, Backend) ->
+get(NS, Ref, Range, Backend) ->
     {Module, Opts} = machinery_utils:get_backend(Backend),
-    machinery_backend:get(Module, NS, ID, Range, Opts).
+    machinery_backend:get(Module, NS, Ref, Range, Opts).
 
 %% Internal API
 
