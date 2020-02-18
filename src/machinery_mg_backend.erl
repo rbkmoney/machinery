@@ -21,6 +21,8 @@
     schema          := machinery_mg_schema:schema()
 ).
 
+-define(MICROS_PER_SEC, (1000 * 1000)).
+
 %% Server types
 -type backend_config() :: #{
     ?BACKEND_CORE_OPTS
@@ -361,11 +363,10 @@ marshal({schema, Schema, T}, V) ->
     % Marshal properly
     machinery_mg_schema:marshal(Schema, T, V);
 
-marshal(timestamp, {{Date, Time}, USec} = V) ->
-    {ok, Result} = rfc3339:format({Date, Time, USec, 0}),
-    % ensure that Result is actually a binary
-    {true, _} = {is_binary(Result), V},
-    Result;
+marshal(timestamp, {DateTime, USec}) ->
+    Ts = genlib_time:daytime_to_unixtime(DateTime) * ?MICROS_PER_SEC + USec,
+    Str = calendar:system_time_to_rfc3339(Ts, [{unit, microsecond}, {offset, "Z"}]),
+    erlang:list_to_binary(Str);
 
 marshal({list, T}, V) when is_list(V) ->
     [marshal(T, E) || E <- V];
@@ -518,12 +519,14 @@ unmarshal({schema, Schema, T}, V) ->
     machinery_mg_schema:unmarshal(Schema, T, V);
 
 unmarshal(timestamp, V) when is_binary(V) ->
-    case rfc3339:parse(V) of
-        {ok, {Date, Time, USec, TZOffset}} when TZOffset == undefined orelse TZOffset == 0 ->
-            {{Date, Time}, USec};
-        {ok, _} ->
-            erlang:error(badarg, [timestamp, V, badoffset]);
-        {error, Reason} ->
+    ok = assert_is_utc(V),
+    Str = erlang:binary_to_list(V),
+    try
+        Micros = calendar:rfc3339_to_system_time(Str, [{unit, microsecond}]),
+        Datetime = calendar:system_time_to_universal_time(Micros, microsecond),
+        {Datetime, Micros rem ?MICROS_PER_SEC}
+    catch
+        error:Reason ->
             erlang:error(badarg, [timestamp, V, Reason])
     end;
 
@@ -555,3 +558,20 @@ unmarshal(integer, V) when is_integer(V) ->
 
 unmarshal(T, V) ->
     erlang:error(badarg, [T, V]).
+
+-spec assert_is_utc(binary()) ->
+    ok | no_return().
+assert_is_utc(Rfc3339) ->
+    Size0 = erlang:byte_size(Rfc3339),
+    Size1 = Size0 - 1,
+    Size6 = Size0 - 6,
+    case Rfc3339 of
+        <<_:Size1/bytes, "Z">> ->
+            ok;
+        <<_:Size6/bytes, "+00:00">> ->
+            ok;
+        <<_:Size6/bytes, "-00:00">> ->
+            ok;
+        _ ->
+            erlang:error(badarg, [timestamp, Rfc3339, badoffset])
+    end.
