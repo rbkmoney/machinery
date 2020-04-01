@@ -64,16 +64,15 @@ get_handler_config(Path) ->
     #{path => Path, backend_config => get_backend_config()}.
 
 get_backend_config() ->
-    maps:with([schema, marshaller], config()).
+    maps:with([schema], config()).
 
 %% client
 -spec get_backend(opts()) ->
     machinery_mg_backend:backend().
 get_backend(#{woody_ctx := WoodyCtx}) ->
     machinery_mg_backend:new(WoodyCtx, #{
-        client     => get_woody_client(),
-        schema     => config(schema),
-        marshaller => config(marshaller)
+        client    => get_woody_client(),
+        schema    => config(schema)
     }).
 
 -spec get_woody_client() ->
@@ -88,7 +87,6 @@ config(Key) ->
 config() ->
     #{
         schema        => machinery_mg_schema_generic,
-        marshaller    => machinery_mg_backend_marshaller,
         url           => <<"http://machinegun:8022/v1/automaton">>,
         handler_path  => <<"/v1/stateproc">>,
         event_handler => woody_event_handler_default,

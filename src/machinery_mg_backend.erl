@@ -1,6 +1,10 @@
 %%%
 %%% Machinery machinegun backend
 
+%% TODO
+%%
+%%  - There's marshalling scattered around which is common enough for _any_ thrift interface.
+
 -module(machinery_mg_backend).
 -include_lib("mg_proto/include/mg_proto_state_processing_thrift.hrl").
 
@@ -14,9 +18,10 @@
 -type logic_handler(T)  :: machinery:logic_handler(T).
 
 -define(BACKEND_CORE_OPTS,
-    schema          := machinery_mg_schema:schema(),
-    marshaller      := machinery_backend_marshaller:backend()
+    schema          := machinery_mg_schema:schema()
 ).
+
+-define(MICROS_PER_SEC, (1000 * 1000)).
 
 %% Server types
 -type backend_config() :: #{
@@ -96,7 +101,7 @@ get_handler({LogicHandler, #{path := Path, backend_config := Config}}, _) ->
 
 -spec new(woody_context:ctx(), backend_opts_static()) ->
     backend().
-new(WoodyCtx, Opts = #{client := _, schema := _, marshaller := _}) ->
+new(WoodyCtx, Opts = #{client := _, schema := _}) ->
     {?MODULE, Opts#{woody_ctx => WoodyCtx}}.
 
 %% Machinery backend
@@ -106,11 +111,8 @@ new(WoodyCtx, Opts = #{client := _, schema := _, marshaller := _}) ->
 start(NS, ID, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
-    Marshaller = get_marshaller(Opts),
-    MarshaledArgs = machinery_backend_marshaller:marshal(Marshaller, {schema, Schema, {args, init}}, Args),
-    MarshaledNS = machinery_backend_marshaller:marshal(Marshaller, namespace, NS),
-    MarshaledID = machinery_backend_marshaller:marshal(Marshaller, id, ID),
-    case machinery_mg_client:start(MarshaledNS, MarshaledID, MarshaledArgs, Client) of
+    InitArgs = marshal({schema, Schema, {args, init}}, Args),
+    case machinery_mg_client:start(marshal(namespace, NS), marshal(id, ID), InitArgs, Client) of
         {ok, ok} ->
             ok;
         {exception, #mg_stateproc_MachineAlreadyExists{}} ->
@@ -126,13 +128,11 @@ start(NS, ID, Args, Opts) ->
 call(NS, Ref, Range, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
-    Marshaller = get_marshaller(Opts),
     Descriptor = {NS, Ref, Range},
-    MarshaledArgs = machinery_backend_marshaller:marshal(Marshaller, {schema, Schema, {args, call}}, Args),
-    MarshaledDesc = machinery_backend_marshaller:marshal(Marshaller, descriptor, Descriptor),
-    case machinery_mg_client:call(MarshaledDesc, MarshaledArgs, Client) of
+    CallArgs = marshal({schema, Schema, {args, call}}, Args),
+    case machinery_mg_client:call(marshal(descriptor, Descriptor), CallArgs, Client) of
         {ok, Response} ->
-            {ok, machinery_backend_marshaller:unmarshal(Marshaller, {schema, Schema, response}, Response)};
+            {ok, unmarshal({schema, Schema, response}, Response)};
         {exception, #mg_stateproc_MachineNotFound{}} ->
             {error, notfound};
         {exception, #mg_stateproc_NamespaceNotFound{}} ->
@@ -146,11 +146,9 @@ call(NS, Ref, Range, Args, Opts) ->
 repair(NS, Ref, Range, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
-    Marshaller = get_marshaller(Opts),
     Descriptor = {NS, Ref, Range},
-    MarshaledArgs = machinery_backend_marshaller:marshal(Marshaller, {schema, Schema, {args, repair}}, Args),
-    MarshaledDesc = machinery_backend_marshaller:marshal(Marshaller, descriptor, Descriptor),
-    case machinery_mg_client:repair(MarshaledDesc, MarshaledArgs, Client) of
+    CallArgs = marshal({schema, Schema, {args, repair}}, Args),
+    case machinery_mg_client:repair(marshal(descriptor, Descriptor), CallArgs, Client) of
         {ok, ok} ->
             ok;
         {exception, #mg_stateproc_MachineNotFound{}} ->
@@ -166,12 +164,10 @@ repair(NS, Ref, Range, Args, Opts) ->
 get(NS, Ref, Range, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
-    Marshaller = get_marshaller(Opts),
     Descriptor = {NS, Ref, Range},
-    MarshaledDesc = machinery_backend_marshaller:marshal(Marshaller, descriptor, Descriptor),
-    case machinery_mg_client:get_machine(MarshaledDesc, Client) of
+    case machinery_mg_client:get_machine(marshal(descriptor, Descriptor), Client) of
         {ok, Machine} ->
-            {ok, machinery_backend_marshaller:unmarshal(Marshaller, {machine, Schema}, Machine)};
+            {ok, unmarshal({machine, Schema}, Machine)};
         {exception, #mg_stateproc_MachineNotFound{}} ->
             {error, notfound};
         {exception, #mg_stateproc_NamespaceNotFound{}} ->
@@ -189,34 +185,30 @@ handle_function(
     'ProcessSignal',
     [#mg_stateproc_SignalArgs{signal = Signal, machine = Machine}],
     WoodyCtx,
-    #{handler := Handler, schema := Schema, marshaller := Marshaller}
+    #{handler := Handler, schema := Schema}
 ) ->
-    Machine1 = machinery_backend_marshaller:unmarshal(Marshaller, {machine, Schema}, Machine),
+    Machine1 = unmarshal({machine, Schema}, Machine),
     Result   = dispatch_signal(
-        machinery_backend_marshaller:unmarshal(Marshaller, {signal, Schema}, Signal),
+        unmarshal({signal, Schema}, Signal),
         Machine1,
         machinery_utils:get_handler(Handler),
         get_handler_opts(WoodyCtx)
     ),
-    {ok, machinery_backend_marshaller:marshal(Marshaller, {signal_result, Schema}, handle_result(Result, Machine1))};
+    {ok, marshal({signal_result, Schema}, handle_result(Result, Machine1))};
 handle_function(
     'ProcessCall',
     [#mg_stateproc_CallArgs{arg = Args, machine = Machine}],
     WoodyCtx,
-    #{handler := Handler, schema := Schema, marshaller := Marshaller}
+    #{handler := Handler, schema := Schema}
 ) ->
-    Machine1 = machinery_backend_marshaller:unmarshal(Marshaller, {machine, Schema}, Machine),
+    Machine1 = unmarshal({machine, Schema}, Machine),
     {Response, Result} = dispatch_call(
-        machinery_backend_marshaller:unmarshal(Marshaller, {schema, Schema, {args, call}}, Args),
+        unmarshal({schema, Schema, {args, call}}, Args),
         Machine1,
         machinery_utils:get_handler(Handler),
         get_handler_opts(WoodyCtx)
     ),
-    {ok, machinery_backend_marshaller:marshal(
-        Marshaller,
-        {call_result, Schema},
-        {Response, handle_result(Result, Machine1
-    )})}.
+    {ok, marshal({call_result, Schema}, {Response, handle_result(Result, Machine1)})}.
 
 %% Utils
 
@@ -251,5 +243,335 @@ set_aux_state(undefined, ReceivedState) ->
 set_aux_state(NewState, _) ->
     NewState.
 
-get_marshaller(#{marshaller := Marshaller}) ->
-    Marshaller.
+%% Marshalling
+
+%% No marshalling for the machine required by the protocol so far.
+%%
+%% marshal(
+%%     {machine, Schema},
+%%     #{
+%%         ns              := NS,
+%%         id              := ID,
+%%         history         := History
+%%     }
+%% ) ->
+%%     #mg_stateproc_Machine{
+%%         'ns'            = marshal(namespace, NS),
+%%         'id'            = marshal(id, ID),
+%%         'history'       = marshal({history, Schema}, History),
+%%         % TODO
+%%         % There are required fields left
+%%         'history_range' = marshal(range, {undefined, undefined, forward})
+%%     };
+
+marshal(descriptor, {NS, Ref, Range}) ->
+    #mg_stateproc_MachineDescriptor{
+        'ns'        = marshal(namespace, NS),
+        'ref'       = marshal(ref, Ref),
+        'range'     = marshal(range, Range)
+    };
+
+marshal(range, {Cursor, Limit, Direction}) ->
+    #mg_stateproc_HistoryRange{
+        'after'     = marshal({maybe, event_id}, Cursor),
+        'limit'     = marshal(limit, Limit),
+        'direction' = marshal(direction, Direction)
+    };
+
+marshal({history, Schema}, V) ->
+    marshal({list, {event, Schema}}, V);
+marshal({event, Schema}, {EventID, CreatedAt, Body}) ->
+    #mg_stateproc_Event{
+        'id'         = marshal(event_id, EventID),
+        'created_at' = marshal(timestamp, CreatedAt),
+        'data'       = marshal({schema, Schema, event}, Body)
+    };
+
+marshal({signal, Schema}, {init, Args}) ->
+    {init, #mg_stateproc_InitSignal{arg = marshal({schema, Schema, {args, init}}, Args)}};
+
+marshal({signal, _Schema}, timeout) ->
+    {timeout, #mg_stateproc_TimeoutSignal{}};
+
+marshal({signal, Schema}, {repair, Args}) ->
+    {repair, #mg_stateproc_RepairSignal{arg = marshal({maybe, {schema, Schema, {args, repair}}}, Args)}};
+
+marshal({signal_result, Schema}, #{} = V) ->
+    #mg_stateproc_SignalResult{
+        change = marshal({state_change, Schema}, V),
+        action = marshal(action, maps:get(action, V, []))
+    };
+
+marshal({call_result, Schema}, {Response, #{} = V}) ->
+    #mg_stateproc_CallResult{
+        response = marshal({schema, Schema, response}, Response),
+        change   = marshal({state_change, Schema}, V),
+        action   = marshal(action, maps:get(action, V, []))
+    };
+
+marshal({state_change, Schema}, #{} = V) ->
+    #mg_stateproc_MachineStateChange{
+        events = [
+            #mg_stateproc_Content{data = Event}
+            || Event <- marshal({list, {schema, Schema, event}}, maps:get(events, V, []))
+        ],
+        % TODO
+        % Provide this to logic handlers as well
+        aux_state = #mg_stateproc_Content{
+            data = marshal({schema, Schema, aux_state}, maps:get(aux_state, V, undefined))
+        }
+    };
+
+marshal(action, V) when is_list(V) ->
+    lists:foldl(fun apply_action/2, #mg_stateproc_ComplexAction{}, V);
+
+marshal(action, V) ->
+    marshal(action, [V]);
+
+marshal(timer, {timeout, V}) ->
+    {timeout, marshal(integer, V)};
+
+marshal(timer, {deadline, V}) ->
+    {deadline, marshal(timestamp, V)};
+
+marshal(namespace, V) ->
+    marshal(atom, V);
+
+marshal(ref, V) when is_binary(V) ->
+    {id, marshal(id, V)};
+
+marshal(ref, {tag, V}) ->
+    {tag, marshal(tag, V)};
+
+marshal(id, V) ->
+    marshal(string, V);
+
+marshal(tag, V) ->
+    marshal(string, V);
+
+marshal(event_id, V) ->
+    marshal(integer, V);
+
+marshal(limit, V) ->
+    marshal({maybe, integer}, V);
+
+marshal(direction, V) ->
+    marshal({enum, [forward, backward]}, V);
+
+marshal({schema, Schema, T}, V) ->
+    % TODO
+    % Marshal properly
+    machinery_mg_schema:marshal(Schema, T, V);
+
+marshal(timestamp, {DateTime, USec}) ->
+    Ts = genlib_time:daytime_to_unixtime(DateTime) * ?MICROS_PER_SEC + USec,
+    Str = calendar:system_time_to_rfc3339(Ts, [{unit, microsecond}, {offset, "Z"}]),
+    erlang:list_to_binary(Str);
+
+marshal({list, T}, V) when is_list(V) ->
+    [marshal(T, E) || E <- V];
+
+marshal({maybe, _}, undefined) ->
+    undefined;
+
+marshal({maybe, T}, V) ->
+    marshal(T, V);
+
+marshal({enum, Choices = [_ | _]} = T, V) when is_atom(V) ->
+    _ = lists:member(V, Choices) orelse erlang:error(badarg, [T, V]),
+    V;
+
+marshal(atom, V) when is_atom(V) ->
+    atom_to_binary(V, utf8);
+
+marshal(string, V) when is_binary(V) ->
+    V;
+
+marshal(integer, V) when is_integer(V) ->
+    V;
+
+marshal(T, V) ->
+    erlang:error(badarg, [T, V]).
+
+apply_action({set_timer, V}, CA) ->
+    CA#mg_stateproc_ComplexAction{
+        timer = {set_timer, #mg_stateproc_SetTimerAction{timer = marshal(timer, V)}}
+    };
+
+apply_action({set_timer, T, Range}, CA) ->
+    CA#mg_stateproc_ComplexAction{
+        timer = {set_timer, #mg_stateproc_SetTimerAction{
+            timer   = marshal(timer, T),
+            range   = marshal(range, Range)
+        }}
+    };
+
+apply_action({set_timer, T, Range, HandlingTimeout}, CA) ->
+    CA#mg_stateproc_ComplexAction{
+        timer = {set_timer, #mg_stateproc_SetTimerAction{
+            timer   = marshal(timer, T),
+            range   = marshal(range, Range),
+            timeout = marshal(integer, HandlingTimeout)
+        }}
+    };
+
+apply_action(unset_timer, CA) ->
+    CA#mg_stateproc_ComplexAction{
+        timer = {unset_timer, #mg_stateproc_UnsetTimerAction{}}
+    };
+
+apply_action(continue, CA) ->
+    CA#mg_stateproc_ComplexAction{
+        timer = {set_timer, #mg_stateproc_SetTimerAction{timer = {timeout, 0}}}
+    };
+
+apply_action(remove, CA) ->
+    CA#mg_stateproc_ComplexAction{
+        remove = #mg_stateproc_RemoveAction{}
+    };
+
+apply_action({tag, Tag}, CA) ->
+    CA#mg_stateproc_ComplexAction{
+        tag = #mg_stateproc_TagAction{
+            tag = marshal(tag, Tag)
+        }
+    }.
+
+%%
+%% No unmarshalling for the decriptor required by the protocol so far.
+%%
+%% unmarshal(
+%%     descriptor,
+%%     #mg_stateproc_MachineDescriptor{
+%%         ns = NS,
+%%         ref = {'id', ID},
+%%         range = Range
+%%     }
+%% ) ->
+%%     {unmarshal(namespace, NS), unmarshal(id, ID), unmarshal(range, Range)};
+
+unmarshal(
+    range,
+    #mg_stateproc_HistoryRange{
+        'after'         = Cursor,
+        'limit'         = Limit,
+        'direction'     = Direction
+    }
+) ->
+    {unmarshal({maybe, event_id}, Cursor), unmarshal(limit, Limit), unmarshal(direction, Direction)};
+
+unmarshal(
+    {machine, Schema},
+    #mg_stateproc_Machine{
+        'ns'            = NS,
+        'id'            = ID,
+        'history'       = History,
+        'history_range' = Range,
+        'aux_state'     = #mg_stateproc_Content{format_version = _Version, data = AuxState}
+    }
+) ->
+    #{
+        ns              => unmarshal(namespace, NS),
+        id              => unmarshal(id, ID),
+        history         => unmarshal({history, Schema}, History),
+        range           => unmarshal(range, Range),
+        aux_state       => unmarshal({maybe, {schema, Schema, aux_state}}, AuxState)
+    };
+
+unmarshal({history, Schema}, V) ->
+    unmarshal({list, {event, Schema}}, V);
+
+unmarshal(
+    {event, Schema},
+    #mg_stateproc_Event{
+        'id'         = EventID,
+        'created_at' = CreatedAt,
+        'data'       = Payload
+    }
+) ->
+    {unmarshal(event_id, EventID), unmarshal(timestamp, CreatedAt), unmarshal({schema, Schema, event}, Payload)};
+
+unmarshal({signal, Schema}, {init, #mg_stateproc_InitSignal{arg = Args}}) ->
+    {init, unmarshal({schema, Schema, {args, init}}, Args)};
+
+unmarshal({signal, _Schema}, {timeout, #mg_stateproc_TimeoutSignal{}}) ->
+    timeout;
+
+unmarshal({signal, Schema}, {repair, #mg_stateproc_RepairSignal{arg = Args}}) ->
+    {repair, unmarshal({maybe, {schema, Schema, {args, repair}}}, Args)};
+
+unmarshal(namespace, V) ->
+    unmarshal(atom, V);
+
+unmarshal(id, V) ->
+    unmarshal(string, V);
+
+unmarshal(event_id, V) ->
+    unmarshal(integer, V);
+
+unmarshal(limit, V) ->
+    unmarshal({maybe, integer}, V);
+
+unmarshal(direction, V) ->
+    unmarshal({enum, [forward, backward]}, V);
+
+unmarshal({schema, Schema, T}, V) ->
+    machinery_mg_schema:unmarshal(Schema, T, V);
+
+unmarshal(timestamp, V) when is_binary(V) ->
+    ok = assert_is_utc(V),
+    Str = erlang:binary_to_list(V),
+    try
+        Micros = calendar:rfc3339_to_system_time(Str, [{unit, microsecond}]),
+        Datetime = calendar:system_time_to_universal_time(Micros, microsecond),
+        {Datetime, Micros rem ?MICROS_PER_SEC}
+    catch
+        error:Reason ->
+            erlang:error(badarg, [timestamp, V, Reason])
+    end;
+
+unmarshal({list, T}, V) when is_list(V) ->
+    [unmarshal(T, E) || E <- V];
+
+unmarshal({maybe, _}, undefined) ->
+    undefined;
+
+unmarshal({maybe, T}, V) ->
+    unmarshal(T, V);
+
+unmarshal({enum, Choices = [_ | _]} = T, V) when is_atom(V) ->
+    case lists:member(V, Choices) of
+        true ->
+            V;
+        false ->
+            erlang:error(badarg, [T, V])
+    end;
+
+unmarshal(atom, V) when is_binary(V) ->
+    binary_to_existing_atom(V, utf8);
+
+unmarshal(string, V) when is_binary(V) ->
+    V;
+
+unmarshal(integer, V) when is_integer(V) ->
+    V;
+
+unmarshal(T, V) ->
+    erlang:error(badarg, [T, V]).
+
+-spec assert_is_utc(binary()) ->
+    ok | no_return().
+assert_is_utc(Rfc3339) ->
+    Size0 = erlang:byte_size(Rfc3339),
+    Size1 = Size0 - 1,
+    Size6 = Size0 - 6,
+    case Rfc3339 of
+        <<_:Size1/bytes, "Z">> ->
+            ok;
+        <<_:Size6/bytes, "+00:00">> ->
+            ok;
+        <<_:Size6/bytes, "-00:00">> ->
+            ok;
+        _ ->
+            erlang:error(badarg, [timestamp, Rfc3339, badoffset])
+    end.
