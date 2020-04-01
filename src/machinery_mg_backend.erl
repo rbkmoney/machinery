@@ -281,10 +281,11 @@ marshal(range, {Cursor, Limit, Direction}) ->
 marshal({history, Schema}, V) ->
     marshal({list, {event, Schema}}, V);
 marshal({event, Schema}, {EventID, CreatedAt, Body}) ->
+    Version = machinery_mg_schema:get_version(Schema, event),
     #mg_stateproc_Event{
         'id'         = marshal(event_id, EventID),
         'created_at' = marshal(timestamp, CreatedAt),
-        'data'       = marshal({schema, Schema, event}, Body)
+        'data'       = marshal({schema, Schema, {event, Version}}, Body)
     };
 
 marshal({signal, Schema}, {init, Args}) ->
@@ -310,6 +311,7 @@ marshal({call_result, Schema}, {Response, #{} = V}) ->
     };
 
 marshal({state_change, Schema}, #{} = V) ->
+    Version = machinery_mg_schema:get_version(Schema, aux_state),
     #mg_stateproc_MachineStateChange{
         events = [
             #mg_stateproc_Content{data = Event}
@@ -318,7 +320,7 @@ marshal({state_change, Schema}, #{} = V) ->
         % TODO
         % Provide this to logic handlers as well
         aux_state = #mg_stateproc_Content{
-            data = marshal({schema, Schema, aux_state}, maps:get(aux_state, V, undefined))
+            data = marshal({schema, Schema, {aux_state, Version}}, maps:get(aux_state, V, undefined))
         }
     };
 
@@ -467,7 +469,7 @@ unmarshal(
         'id'            = ID,
         'history'       = History,
         'history_range' = Range,
-        'aux_state'     = #mg_stateproc_Content{format_version = _Version, data = AuxState}
+        'aux_state'     = #mg_stateproc_Content{format_version = Version, data = AuxState}
     }
 ) ->
     #{
@@ -475,7 +477,7 @@ unmarshal(
         id              => unmarshal(id, ID),
         history         => unmarshal({history, Schema}, History),
         range           => unmarshal(range, Range),
-        aux_state       => unmarshal({maybe, {schema, Schema, aux_state}}, AuxState)
+        aux_state       => unmarshal({maybe, {schema, Schema, {aux_state, Version}}}, AuxState)
     };
 
 unmarshal({history, Schema}, V) ->
@@ -484,12 +486,17 @@ unmarshal({history, Schema}, V) ->
 unmarshal(
     {event, Schema},
     #mg_stateproc_Event{
-        'id'         = EventID,
-        'created_at' = CreatedAt,
-        'data'       = Payload
+        'id'             = EventID,
+        'created_at'     = CreatedAt,
+        'format_version' = Version,
+        'data'           = Payload
     }
 ) ->
-    {unmarshal(event_id, EventID), unmarshal(timestamp, CreatedAt), unmarshal({schema, Schema, event}, Payload)};
+    {
+        unmarshal(event_id, EventID),
+        unmarshal(timestamp, CreatedAt),
+        unmarshal({schema, Schema, {event, Version}}, Payload)
+    };
 
 unmarshal({signal, Schema}, {init, #mg_stateproc_InitSignal{arg = Args}}) ->
     {init, unmarshal({schema, Schema, {args, init}}, Args)};
