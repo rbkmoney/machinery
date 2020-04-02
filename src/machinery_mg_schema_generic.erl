@@ -14,6 +14,7 @@
 
 -export([marshal/2]).
 -export([unmarshal/2]).
+-export([get_version/1]).
 
 -import(machinery_msgpack, [
     nil/0,
@@ -35,6 +36,12 @@ marshal(_T, V) ->
     v(eterm()).
 unmarshal(_T, V) ->
     unmarshal(V).
+
+-spec get_version(machinery_mg_schema:vt()) ->
+    machinery_mg_schema:version().
+
+get_version(_) ->
+    undefined.
 
 %% API
 
