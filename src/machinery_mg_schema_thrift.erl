@@ -29,7 +29,12 @@ get_version(_) ->
     machinery_msgpack:t().
 
 marshal(Type, Data) ->
-    serialize(Type, Data).
+    case is_supported_type(Type) of
+        true ->
+            serialize(Type, Data);
+        false ->
+            machinery_mg_schema_generic:marshal(Type, Data)
+    end.
 
 serialize(Type, Data) -> 
     {ok, Trans} = thrift_membuffer_transport:new(),
@@ -49,7 +54,12 @@ wrap_result(Result) when is_binary(Result) ->
     v(eterm()).
 
 unmarshal(Type, Data) ->
-    deserialize(Type, Data).
+    case is_supported_type(Type) of
+        true ->
+            deserialize(Type, Data);
+        false ->
+            machinery_mg_schema_generic:unmarshal(Type, Data)
+    end.
 
 deserialize(Type, Data) ->
     {ok, Trans} = thrift_membuffer_transport:new(Data),
@@ -60,3 +70,11 @@ deserialize(Type, Data) ->
         {_NewProto, {error, Reason}} ->
             erlang:error({thrift, {protocol, Reason}})
     end.
+
+is_supported_type(Type) ->
+    lists:member(Type, supported_types()).
+
+
+% which types can be marshalled by this module
+supported_types() ->
+    [].
