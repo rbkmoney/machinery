@@ -25,7 +25,7 @@
     {ok, machinery:response(_)} | {error, notfound}.
 
 -callback repair(namespace(), id(), range(), args(), backend_opts()) ->
-    {ok, machinery:response(_)} | {error, notfound | working}.
+    {ok, machinery:response(_)} | {error, {failed, machinery:error(_)} | notfound | working}.
 
 -callback get(namespace(), id(), range(), backend_opts()) ->
     {ok, machinery:machine(_, _)} | {error, notfound}.
@@ -45,7 +45,7 @@ call(Backend, Namespace, Ref, Range, Args, Opts) ->
     Backend:call(Namespace, Ref, Range, Args, Opts).
 
 -spec repair(backend(), namespace(), ref(), range(), args(), backend_opts()) ->
-    {ok, machinery:response(_)} | {error, notfound | working}.
+    {ok, machinery:response(_)} | {error, {failed, machinery:error(_)} | notfound | working}.
 repair(Backend, Namespace, Ref, Range, Args, Opts) ->
     Backend:repair(Namespace, Ref, Range, Args, Opts).
 

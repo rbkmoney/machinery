@@ -21,6 +21,7 @@
 -export([ranged_repair_test/1]).
 -export([notfound_repair_test/1]).
 -export([failed_repair_test/1]).
+-export([unexpected_failed_repair_test/1]).
 -export([unknown_namespace_repair_test/1]).
 -export([working_repair_test/1]).
 
@@ -55,6 +56,7 @@ groups() ->
             ranged_repair_test,
             notfound_repair_test,
             failed_repair_test,
+            unexpected_failed_repair_test,
             unknown_namespace_repair_test,
             working_repair_test
         ]}
@@ -128,6 +130,14 @@ failed_repair_test(C) ->
     ?assertError({failed, general, ID}, repair(ID, fail, C)),
     ?assertError({failed, general, ID}, call(ID, get_events, C)).
 
+-spec unexpected_failed_repair_test(config()) -> test_return().
+unexpected_failed_repair_test(C) ->
+    ID = unique(),
+    ?assertEqual(ok, start(ID, init_numbers, C)),
+    ?assertError({failed, general, ID}, call(ID, fail, C)),
+    ?assertError({failed, general, ID}, repair(ID, unexpected_fail, C)),
+    ?assertError({failed, general, ID}, call(ID, get_events, C)).
+
 -spec unknown_namespace_repair_test(config()) -> test_return().
 unknown_namespace_repair_test(C) ->
     ID = unique(),
@@ -147,6 +157,7 @@ working_repair_test(C) ->
 -type handler_opts() :: machinery:handler_opts(_).
 -type result() :: machinery:result(event(), aux_st()).
 -type response() :: machinery:response(_).
+-type error() :: machinery:error(_).
 
 -spec init(_Args, machine(), undefined, handler_opts()) ->
     result().
@@ -169,15 +180,17 @@ process_call(fail, _Machine, _, _Opts) ->
     erlang:error(fail).
 
 -spec process_repair(_Args, machine(), undefined, handler_opts()) ->
-    no_return().
+    {ok, response(), result()} | {error, error()}.
 process_repair(simple, _Machine, _, _Opts) ->
-    {done, #{}};
+    {ok, done, #{}};
 process_repair({add_events, Events}, _Machine, _, _Opts) ->
-    {done, #{events => Events}};
+    {ok, done, #{events => Events}};
 process_repair(count_events, #{history := History}, _, _Opts) ->
-    {done, #{events => [{count_events, erlang:length(History)}]}};
+    {ok, done, #{events => [{count_events, erlang:length(History)}]}};
 process_repair(fail, _Machine, _, _Opts) ->
-    erlang:error(fail).
+    {error, fail};
+process_repair(unexpected_fail, _Machine, _, _Opts) ->
+    erlang:error(unexpected_fail).
 
 %% Helpers
 

@@ -116,7 +116,6 @@ failed_start_test(C) ->
 -type machine() :: machinery:machine(event(), aux_st()).
 -type handler_opts() :: machinery:handler_opts(_).
 -type result() :: machinery:result(event(), aux_st()).
--type response() :: machinery:response(_).
 
 -spec init(_Args, machine(), undefined, handler_opts()) ->
     result().
@@ -134,7 +133,7 @@ process_timeout(#{}, _, _Opts) ->
     #{}.
 
 -spec process_call(_Args, machine(), undefined, handler_opts()) ->
-    {response(), result()}.
+    no_return().
 process_call(_Args, _Machine, _, _Opts) ->
     erlang:error({not_implemented, process_call}).
 
