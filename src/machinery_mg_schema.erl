@@ -14,7 +14,10 @@
         repair |
         call
     } |
-    response |
+    {response,
+        call |
+        repair
+    } |
     {event, Version} |
     {aux_state, Version}.
 -type v(T) ::

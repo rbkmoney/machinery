@@ -132,7 +132,7 @@ call(NS, Ref, Range, Args, Opts) ->
     CallArgs = marshal({schema, Schema, {args, call}}, Args),
     case machinery_mg_client:call(marshal(descriptor, Descriptor), CallArgs, Client) of
         {ok, Response} ->
-            {ok, unmarshal({schema, Schema, response}, Response)};
+            {ok, unmarshal({schema, Schema, {response, call}}, Response)};
         {exception, #mg_stateproc_MachineNotFound{}} ->
             {error, notfound};
         {exception, #mg_stateproc_NamespaceNotFound{}} ->
@@ -142,21 +142,23 @@ call(NS, Ref, Range, Args, Opts) ->
     end.
 
 -spec repair(namespace(), ref(), range(), args(_), backend_opts()) ->
-    ok | {error, notfound | working}.
+    {ok, response(_)} | {error, notfound | working}.
 repair(NS, Ref, Range, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
     Descriptor = {NS, Ref, Range},
     CallArgs = marshal({schema, Schema, {args, repair}}, Args),
     case machinery_mg_client:repair(marshal(descriptor, Descriptor), CallArgs, Client) of
-        {ok, ok} ->
-            ok;
+        {ok, Response} ->
+            {ok, unmarshal({schema, Schema, {response, repair}}, Response)};
         {exception, #mg_stateproc_MachineNotFound{}} ->
             {error, notfound};
         {exception, #mg_stateproc_MachineAlreadyWorking{}} ->
             {error, working};
         {exception, #mg_stateproc_NamespaceNotFound{}} ->
-            error({namespace_not_found, NS})
+            error({namespace_not_found, NS});
+        {exception, #mg_stateproc_MachineFailed{}} ->
+            error({failed, NS, Ref})
     end.
 
 -spec get(namespace(), ref(), range(), backend_opts()) ->
@@ -180,13 +182,12 @@ get(NS, Ref, Range, Opts) ->
     ('ProcessSignal', woody:args(), woody_context:ctx(), backend_handler_opts()) ->
         {ok, mg_proto_state_processing_thrift:'SignalResult'()};
     ('ProcessCall', woody:args(), woody_context:ctx(), backend_handler_opts()) ->
-        {ok, mg_proto_state_processing_thrift:'CallResult'()}.
-handle_function(
-    'ProcessSignal',
-    [#mg_stateproc_SignalArgs{signal = Signal, machine = Machine}],
-    WoodyCtx,
-    #{handler := Handler, schema := Schema}
-) ->
+        {ok, mg_proto_state_processing_thrift:'CallResult'()};
+    ('ProcessRepair', woody:args(), woody_context:ctx(), backend_handler_opts()) ->
+        {ok, mg_proto_state_processing_thrift:'RepairResult'()}.
+handle_function('ProcessSignal', FunctionArgs, WoodyCtx, Opts) ->
+    [#mg_stateproc_SignalArgs{signal = Signal, machine = Machine}] = FunctionArgs,
+    #{handler := Handler, schema := Schema} = Opts,
     Machine1 = unmarshal({machine, Schema}, Machine),
     Result   = dispatch_signal(
         unmarshal({signal, Schema}, Signal),
@@ -195,12 +196,9 @@ handle_function(
         get_handler_opts(WoodyCtx)
     ),
     {ok, marshal({signal_result, Schema}, handle_result(Result, Machine1))};
-handle_function(
-    'ProcessCall',
-    [#mg_stateproc_CallArgs{arg = Args, machine = Machine}],
-    WoodyCtx,
-    #{handler := Handler, schema := Schema}
-) ->
+handle_function('ProcessCall', FunctionArgs, WoodyCtx, Opts) ->
+    [#mg_stateproc_CallArgs{arg = Args, machine = Machine}] = FunctionArgs,
+    #{handler := Handler, schema := Schema} = Opts,
     Machine1 = unmarshal({machine, Schema}, Machine),
     {Response, Result} = dispatch_call(
         unmarshal({schema, Schema, {args, call}}, Args),
@@ -208,7 +206,18 @@ handle_function(
         machinery_utils:get_handler(Handler),
         get_handler_opts(WoodyCtx)
     ),
-    {ok, marshal({call_result, Schema}, {Response, handle_result(Result, Machine1)})}.
+    {ok, marshal({call_result, Schema}, {Response, handle_result(Result, Machine1)})};
+handle_function('ProcessRepair', FunctionArgs, WoodyCtx, Opts) ->
+    [#mg_stateproc_RepairArgs{arg = Args, machine = Machine}] = FunctionArgs,
+    #{handler := Handler, schema := Schema} = Opts,
+    Machine1 = unmarshal({machine, Schema}, Machine),
+    {Response, Result} = dispatch_repair(
+        unmarshal({schema, Schema, {args, repair}}, Args),
+        Machine1,
+        machinery_utils:get_handler(Handler),
+        get_handler_opts(WoodyCtx)
+    ),
+    {ok, marshal({repair_result, Schema}, {Response, handle_result(Result, Machine1)})}.
 
 %% Utils
 
@@ -231,6 +240,9 @@ dispatch_signal(Signal, Machine, Handler, Opts) ->
 
 dispatch_call(Args, Machine, Handler, Opts) ->
     machinery:dispatch_call(Args, Machine, Handler, Opts).
+
+dispatch_repair(Args, Machine, Handler, Opts) ->
+    machinery:dispatch_repair(Args, Machine, Handler, Opts).
 
 handle_result(Result, OrigMachine) ->
     Result#{aux_state => set_aux_state(
@@ -305,7 +317,14 @@ marshal({signal_result, Schema}, #{} = V) ->
 
 marshal({call_result, Schema}, {Response, #{} = V}) ->
     #mg_stateproc_CallResult{
-        response = marshal({schema, Schema, response}, Response),
+        response = marshal({schema, Schema, {response, call}}, Response),
+        change   = marshal({state_change, Schema}, V),
+        action   = marshal(action, maps:get(action, V, []))
+    };
+
+marshal({repair_result, Schema}, {Response, #{} = V}) ->
+    #mg_stateproc_RepairResult{
+        response = marshal({schema, Schema, {response, repair}}, Response),
         change   = marshal({state_change, Schema}, V),
         action   = marshal(action, maps:get(action, V, []))
     };
@@ -315,7 +334,7 @@ marshal({state_change, Schema}, #{} = V) ->
     #mg_stateproc_MachineStateChange{
         events = [
             #mg_stateproc_Content{data = Event}
-            || Event <- marshal({list, {schema, Schema, event}}, maps:get(events, V, []))
+            || Event <- marshal({list, {schema, Schema, {event, Version}}}, maps:get(events, V, []))
         ],
         % TODO
         % Provide this to logic handlers as well

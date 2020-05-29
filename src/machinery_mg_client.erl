@@ -38,6 +38,7 @@ new(WoodyClient = #{url := _, event_handler := _}, WoodyCtx) ->
 -type args()                    :: mg_proto_state_processing_thrift:'Args'().
 -type descriptor()              :: mg_proto_state_processing_thrift:'MachineDescriptor'().
 -type call_response()           :: mg_proto_state_processing_thrift:'CallResponse'().
+-type repair_response()         :: mg_proto_state_processing_thrift:'RepairResponse'().
 -type machine()                 :: mg_proto_state_processing_thrift:'Machine'().
 -type namespace_not_found()     :: mg_proto_state_processing_thrift:'NamespaceNotFound'().
 -type machine_not_found()       :: mg_proto_state_processing_thrift:'MachineNotFound'().
@@ -58,8 +59,8 @@ call(Descriptor, Args, Client) ->
     issue_call('Call', [Descriptor, Args], Client).
 
 -spec repair(descriptor(), args(), client()) ->
-    {ok, ok} |
-    {exception, namespace_not_found() | machine_not_found() | machine_already_working()}.
+    {ok, repair_response()} |
+    {exception, namespace_not_found() | machine_not_found() | machine_already_working() | machine_failed()}.
 repair(Descriptor, Args, Client) ->
     issue_call('Repair', [Descriptor, Args], Client).
 
