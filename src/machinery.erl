@@ -170,12 +170,8 @@ get(NS, Ref, Range, Backend) ->
 dispatch_signal({init, Args}, Machine, {Handler, HandlerArgs}, Opts) ->
     Handler:init(Args, Machine, HandlerArgs, Opts);
 dispatch_signal({repair, Args}, Machine, {Handler, HandlerArgs}, Opts) ->
-    case Handler:process_repair(Args, Machine, HandlerArgs, Opts) of
-        {ok, _Response} ->
-            ok;
-        {error, _Reason} = Error ->
-            Error
-    end;
+    {_Response, Result} = Handler:process_repair(Args, Machine, HandlerArgs, Opts),
+    Result;
 dispatch_signal(timeout, Machine, {Handler, HandlerArgs}, Opts) ->
     Handler:process_timeout(Machine, HandlerArgs, Opts).
 

@@ -7,6 +7,9 @@ namespaces:
     payproc/tags:
         processor:
             url: http://machinery:8022/v1/stateproc
+    general:
+        processor:
+            url: http://machinery:8022/v1/stateproc
 
 storage:
     type: memory

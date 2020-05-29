@@ -156,7 +156,9 @@ repair(NS, Ref, Range, Args, Opts) ->
         {exception, #mg_stateproc_MachineAlreadyWorking{}} ->
             {error, working};
         {exception, #mg_stateproc_NamespaceNotFound{}} ->
-            error({namespace_not_found, NS})
+            error({namespace_not_found, NS});
+        {exception, #mg_stateproc_MachineFailed{}} ->
+            error({failed, NS, Ref})
     end.
 
 -spec get(namespace(), ref(), range(), backend_opts()) ->
