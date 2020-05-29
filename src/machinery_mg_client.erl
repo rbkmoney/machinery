@@ -60,7 +60,7 @@ call(Descriptor, Args, Client) ->
 
 -spec repair(descriptor(), args(), client()) ->
     {ok, repair_response()} |
-    {exception, namespace_not_found() | machine_not_found() | machine_already_working()}.
+    {exception, namespace_not_found() | machine_not_found() | machine_already_working() | machine_failed()}.
 repair(Descriptor, Args, Client) ->
     issue_call('Repair', [Descriptor, Args], Client).
 
