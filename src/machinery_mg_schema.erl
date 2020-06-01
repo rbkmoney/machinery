@@ -18,7 +18,7 @@
         call |
         {repair,
             success |
-            fail
+            failure
         }
     } |
     {event, Version} |

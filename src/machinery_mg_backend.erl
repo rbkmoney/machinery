@@ -153,7 +153,7 @@ repair(NS, Ref, Range, Args, Opts) ->
         {ok, Response} ->
             {ok, unmarshal({schema, Schema, {response, {repair, success}}}, Response)};
         {exception, #mg_stateproc_RepairFailed{reason = Reason}} ->
-            {error, {failed, unmarshal({schema, Schema, {response, {repair, fail}}}, Reason)}};
+            {error, {failed, unmarshal({schema, Schema, {response, {repair, failure}}}, Reason)}};
         {exception, #mg_stateproc_MachineNotFound{}} ->
             {error, notfound};
         {exception, #mg_stateproc_MachineAlreadyWorking{}} ->
@@ -339,7 +339,7 @@ marshal({repair_result, Schema}, {Response, #{} = V}) ->
 
 marshal({repair_fail, Schema}, Reason) ->
     #mg_stateproc_RepairFailed{
-        reason = marshal({schema, Schema, {response, {repair, fail}}}, Reason)
+        reason = marshal({schema, Schema, {response, {repair, failure}}}, Reason)
     };
 
 marshal({state_change, Schema}, #{} = V) ->
