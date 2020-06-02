@@ -142,7 +142,7 @@ init(init_numbers, _Machine, _, _Opts) ->
     }.
 
 -spec process_timeout(machine(), undefined, handler_opts()) ->
-    result().
+    no_return().
 process_timeout(#{}, _, _Opts) ->
     erlang:error({not_implemented, process_timeout}).
 

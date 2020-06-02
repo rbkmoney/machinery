@@ -16,7 +16,10 @@
     } |
     {response,
         call |
-        repair
+        {repair,
+            success |
+            failure
+        }
     } |
     {event, Version} |
     {aux_state, Version}.

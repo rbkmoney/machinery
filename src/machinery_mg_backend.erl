@@ -14,6 +14,7 @@
 -type range()           :: machinery:range().
 -type args(T)           :: machinery:args(T).
 -type response(T)       :: machinery:response(T).
+-type error(T)          :: machinery:error(T).
 -type machine(E, A)     :: machinery:machine(E, A).
 -type logic_handler(T)  :: machinery:logic_handler(T).
 
@@ -142,7 +143,7 @@ call(NS, Ref, Range, Args, Opts) ->
     end.
 
 -spec repair(namespace(), ref(), range(), args(_), backend_opts()) ->
-    {ok, response(_)} | {error, notfound | working}.
+    {ok, response(_)} | {error, {failed, error(_)} | notfound | working}.
 repair(NS, Ref, Range, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
@@ -150,7 +151,9 @@ repair(NS, Ref, Range, Args, Opts) ->
     CallArgs = marshal({schema, Schema, {args, repair}}, Args),
     case machinery_mg_client:repair(marshal(descriptor, Descriptor), CallArgs, Client) of
         {ok, Response} ->
-            {ok, unmarshal({schema, Schema, {response, repair}}, Response)};
+            {ok, unmarshal({schema, Schema, {response, {repair, success}}}, Response)};
+        {exception, #mg_stateproc_RepairFailed{reason = Reason}} ->
+            {error, {failed, unmarshal({schema, Schema, {response, {repair, failure}}}, Reason)}};
         {exception, #mg_stateproc_MachineNotFound{}} ->
             {error, notfound};
         {exception, #mg_stateproc_MachineAlreadyWorking{}} ->
@@ -211,13 +214,18 @@ handle_function('ProcessRepair', FunctionArgs, WoodyCtx, Opts) ->
     [#mg_stateproc_RepairArgs{arg = Args, machine = Machine}] = FunctionArgs,
     #{handler := Handler, schema := Schema} = Opts,
     Machine1 = unmarshal({machine, Schema}, Machine),
-    {Response, Result} = dispatch_repair(
+    RepairResult = dispatch_repair(
         unmarshal({schema, Schema, {args, repair}}, Args),
         Machine1,
         machinery_utils:get_handler(Handler),
         get_handler_opts(WoodyCtx)
     ),
-    {ok, marshal({repair_result, Schema}, {Response, handle_result(Result, Machine1)})}.
+    case RepairResult of
+        {ok, Response, Result} ->
+            {ok, marshal({repair_result, Schema}, {Response, handle_result(Result, Machine1)})};
+        {error, Reason} ->
+            erlang:throw(marshal({repair_fail, Schema}, Reason))
+    end.
 
 %% Utils
 
@@ -324,9 +332,14 @@ marshal({call_result, Schema}, {Response, #{} = V}) ->
 
 marshal({repair_result, Schema}, {Response, #{} = V}) ->
     #mg_stateproc_RepairResult{
-        response = marshal({schema, Schema, {response, repair}}, Response),
+        response = marshal({schema, Schema, {response, {repair, success}}}, Response),
         change   = marshal({state_change, Schema}, V),
         action   = marshal(action, maps:get(action, V, []))
+    };
+
+marshal({repair_fail, Schema}, Reason) ->
+    #mg_stateproc_RepairFailed{
+        reason = marshal({schema, Schema, {response, {repair, failure}}}, Reason)
     };
 
 marshal({state_change, Schema}, #{} = V) ->
