@@ -180,13 +180,13 @@ process_call(fail, _Machine, _, _Opts) ->
     erlang:error(fail).
 
 -spec process_repair(_Args, machine(), undefined, handler_opts()) ->
-    {ok, response(), result()} | {error, error()}.
+    {ok, {response(), result()}} | {error, error()}.
 process_repair(simple, _Machine, _, _Opts) ->
-    {ok, done, #{}};
+    {ok, {done, #{}}};
 process_repair({add_events, Events}, _Machine, _, _Opts) ->
-    {ok, done, #{events => Events}};
+    {ok, {done, #{events => Events}}};
 process_repair(count_events, #{history := History}, _, _Opts) ->
-    {ok, done, #{events => [{count_events, erlang:length(History)}]}};
+    {ok, {done, #{events => [{count_events, erlang:length(History)}]}}};
 process_repair(fail, _Machine, _, _Opts) ->
     {error, fail};
 process_repair(unexpected_fail, _Machine, _, _Opts) ->
