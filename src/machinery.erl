@@ -116,7 +116,7 @@
     result(E, A).
 
 -callback process_repair(args(_), machine(E, A), handler_args(_), handler_opts(_)) ->
-    {ok, response(_), result(E, A)} | {error, error(_)}.
+    {ok, {response(_), result(E, A)}} | {error, error(_)}.
 
 -callback process_timeout(machine(E, A), handler_args(_), handler_opts(_)) ->
     result(E, A).
@@ -149,7 +149,7 @@ repair(NS, Ref, Args, Backend) ->
     repair(NS, Ref, {undefined, undefined, forward}, Args, Backend).
 
 -spec repair(namespace(), ref(), range(), args(_), backend(_)) ->
-    {ok, response(_)} | {error, notfound | working}.
+    {ok, response(_)} | {error, notfound | working | {failed, machinery:error(_)}}.
 repair(NS, Ref, Range, Args, Backend) ->
     {Module, Opts} = machinery_utils:get_backend(Backend),
     machinery_backend:repair(Module, NS, Ref, Range, Args, Opts).
@@ -173,7 +173,7 @@ dispatch_signal({init, Args}, Machine, {Handler, HandlerArgs}, Opts) ->
     Handler:init(Args, Machine, HandlerArgs, Opts);
 dispatch_signal({repair, Args}, Machine, {Handler, HandlerArgs}, Opts) ->
     case Handler:process_repair(Args, Machine, HandlerArgs, Opts) of
-        {ok, _Response, Result} ->
+        {ok, {_Response, Result}} ->
             Result;
         {error, Reason} ->
             erlang:error({repair_failed, Reason})
@@ -187,6 +187,6 @@ dispatch_call(Args, Machine, {Handler, HandlerArgs}, Opts) ->
     Handler:process_call(Args, Machine, HandlerArgs, Opts).
 
 -spec dispatch_repair(args(_), machine(E, A), logic_handler(_), handler_opts(_)) ->
-    {ok, response(_), result(E, A)} | {error, error(_)}.
+    {ok, {response(_), result(E, A)}} | {error, error(_)}.
 dispatch_repair(Args, Machine, {Handler, HandlerArgs}, Opts) ->
     Handler:process_repair(Args, Machine, HandlerArgs, Opts).

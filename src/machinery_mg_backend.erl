@@ -221,7 +221,7 @@ handle_function('ProcessRepair', FunctionArgs, WoodyCtx, Opts) ->
         get_handler_opts(WoodyCtx)
     ),
     case RepairResult of
-        {ok, Response, Result} ->
+        {ok, {Response, Result}} ->
             {ok, marshal({repair_result, Schema}, {Response, handle_result(Result, Machine1)})};
         {error, Reason} ->
             erlang:throw(marshal({repair_fail, Schema}, Reason))
