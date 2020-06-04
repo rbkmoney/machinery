@@ -343,16 +343,18 @@ marshal({repair_fail, Schema}, Reason) ->
     };
 
 marshal({state_change, Schema}, #{} = V) ->
-    Version = machinery_mg_schema:get_version(Schema, aux_state),
+    AuxStateVersion = machinery_mg_schema:get_version(Schema, aux_state),
+    EventVersion = machinery_mg_schema:get_version(Schema, event),
     #mg_stateproc_MachineStateChange{
         events = [
-            #mg_stateproc_Content{data = Event}
-            || Event <- marshal({list, {schema, Schema, {event, Version}}}, maps:get(events, V, []))
+            #mg_stateproc_Content{data = Event, format_version = EventVersion}
+            || Event <- marshal({list, {schema, Schema, {event, EventVersion}}}, maps:get(events, V, []))
         ],
         % TODO
         % Provide this to logic handlers as well
         aux_state = #mg_stateproc_Content{
-            data = marshal({schema, Schema, {aux_state, Version}}, maps:get(aux_state, V, undefined))
+            data = marshal({schema, Schema, {aux_state, AuxStateVersion}}, maps:get(aux_state, V, undefined)),
+            format_version = AuxStateVersion
         }
     };
 
