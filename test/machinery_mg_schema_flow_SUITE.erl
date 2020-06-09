@@ -1,4 +1,4 @@
--module(machinery_mg_schema_versions_SUITE).
+-module(machinery_mg_schema_flow_SUITE).
 
 -behaviour(machinery).
 
@@ -25,8 +25,8 @@
 
 %% machinery_mg_schema callbacks
 
--export([marshal/2]).
--export([unmarshal/2]).
+-export([marshal/3]).
+-export([unmarshal/3]).
 -export([get_version/1]).
 
 %% Internal types
@@ -124,9 +124,9 @@ process_repair(repair_something, #{history := History}, _, _Opts) ->
 
 %% machinery_mg_schema callbacks
 
--spec marshal(machinery_mg_schema:t(), any()) ->
-    machinery_msgpack:t().
-marshal(T, V) when
+-spec marshal(machinery_mg_schema:t(), any(), machinery_mg_schema:context()) ->
+    {machinery_msgpack:t(), machinery_mg_schema:context()}.
+marshal(T, V, C) when
     T =:= {aux_state, 1} orelse
     T =:= {event, 2} orelse
     T =:= {args, init} orelse
@@ -136,11 +136,11 @@ marshal(T, V) when
     T =:= {response, {repair, success}} orelse
     T =:= {response, {repair, failure}}
 ->
-    {bin, erlang:term_to_binary(V)}.
+    {{bin, erlang:term_to_binary(V)}, C}.
 
--spec unmarshal(machinery_mg_schema:t(), machinery_msgpack:t()) ->
-    any().
-unmarshal(T, V) when
+-spec unmarshal(machinery_mg_schema:t(), machinery_msgpack:t(), machinery_mg_schema:context()) ->
+    {any(), machinery_mg_schema:context()}.
+unmarshal(T, V, C) when
     T =:= {aux_state, 1} orelse
     T =:= {event, 2} orelse
     T =:= {args, init} orelse
@@ -150,13 +150,13 @@ unmarshal(T, V) when
     T =:= {response, {repair, failure}}
 ->
     {bin, EncodedV} = V,
-    erlang:binary_to_term(EncodedV);
-unmarshal({aux_state, undefined}, {bin, <<>>}) ->
+    {erlang:binary_to_term(EncodedV), C};
+unmarshal({aux_state, undefined}, {bin, <<>>}, C) ->
     % initial aux_state
-    undefined;
-unmarshal({response, {repair, success}}, {bin, <<"ok">>}) ->
+    {undefined, C};
+unmarshal({response, {repair, success}}, {bin, <<"ok">>}, C) ->
     % mg repair migration artefact
-    done.
+    {done, C}.
 
 -spec get_version(machinery_mg_schema:vt()) ->
     machinery_mg_schema:version().
