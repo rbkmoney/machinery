@@ -296,30 +296,6 @@ marshal(range, {Cursor, Limit, Direction}) ->
         'direction' = marshal(direction, Direction)
     };
 
-marshal({history, Schema, Context}, V) ->
-    {marshal({list, {event, Schema, Context}}, V), Context};
-marshal({event, Schema, Context0}, {EventID, CreatedAt0, Body0}) ->
-    Version = machinery_mg_schema:get_version(Schema, event),
-    CreatedAt1 = marshal(timestamp, CreatedAt0),
-    Context1 = Context0#{created_at => CreatedAt1},
-    {Body1, Context1} = marshal({schema, Schema, {event, Version}, Context1}, Body0),
-    #mg_stateproc_Event{
-        'id'         = marshal(event_id, EventID),
-        'created_at' = CreatedAt1,
-        'data'       = Body1
-    };
-
-marshal({signal, Schema, Context0}, {init, Args0}) ->
-    {Args1, Context1} = marshal({schema, Schema, {args, init}, Context0}, Args0),
-    {{init, #mg_stateproc_InitSignal{arg = Args1}}, Context1};
-
-marshal({signal, _Schema, Context}, timeout) ->
-    {{timeout, #mg_stateproc_TimeoutSignal{}}, Context};
-
-marshal({signal, Schema, Context0}, {repair, Args0}) ->
-    {Args1, Context1} = marshal({maybe, {schema, Schema, {args, repair}, Context0}}, Args0),
-    {{repair, #mg_stateproc_RepairSignal{arg = Args1}}, Context1};
-
 marshal({signal_result, Schema, Context}, #{} = V) ->
     #mg_stateproc_SignalResult{
         change   = marshal({state_change, Schema, Context}, V),
