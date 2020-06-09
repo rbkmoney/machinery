@@ -136,7 +136,7 @@ marshal(T, V, C) when
     T =:= {response, {repair, success}} orelse
     T =:= {response, {repair, failure}}
 ->
-    {{bin, erlang:term_to_binary(V)}, C}.
+    {{bin, erlang:term_to_binary(V)}, process_context(T, C)}.
 
 -spec unmarshal(machinery_mg_schema:t(), machinery_msgpack:t(), machinery_mg_schema:context()) ->
     {any(), machinery_mg_schema:context()}.
@@ -150,13 +150,13 @@ unmarshal(T, V, C) when
     T =:= {response, {repair, failure}}
 ->
     {bin, EncodedV} = V,
-    {erlang:binary_to_term(EncodedV), C};
-unmarshal({aux_state, undefined}, {bin, <<>>}, C) ->
+    {erlang:binary_to_term(EncodedV), process_context(T, C)};
+unmarshal({aux_state, undefined} = T, {bin, <<>>}, C) ->
     % initial aux_state
-    {undefined, C};
-unmarshal({response, {repair, success}}, {bin, <<"ok">>}, C) ->
+    {undefined, process_context(T, C)};
+unmarshal({response, {repair, success}} = T, {bin, <<"ok">>}, C) ->
     % mg repair migration artefact
-    {done, C}.
+    {done, process_context(T, C)}.
 
 -spec get_version(machinery_mg_schema:vt()) ->
     machinery_mg_schema:version().
@@ -164,6 +164,31 @@ get_version(aux_state) ->
     1;
 get_version(event) ->
     2.
+
+-spec process_context(machinery_mg_schema:t(), machinery_mg_schema:context()) ->
+    machinery_mg_schema:context() | no_return().
+process_context(T, C) ->
+    ?assertMatch(#{machine_ref := _, machine_ns := general}, C),
+    do_process_context(T, C).
+
+-spec do_process_context(machinery_mg_schema:t(), machinery_mg_schema:context()) ->
+    machinery_mg_schema:context() | no_return().
+do_process_context({response, call}, C) ->
+    ?assertMatch(#{{args, call} := ok}, C),
+    C;
+do_process_context({response, {repair, success}}, C) ->
+    ?assertMatch(#{{args, repair} := ok}, C),
+    C;
+do_process_context({response, {repair, failure}}, C) ->
+    ?assertMatch(#{{args, repair} := ok}, C),
+    C;
+do_process_context({args, _} = T, C) ->
+    C#{T => ok};
+do_process_context({event, _}, C) ->
+    ?assertMatch(#{aux_state := _, my_key := test}, C),
+    C;
+do_process_context({aux_state, _}, C) ->
+    C#{my_key => test}.
 
 %% Helpers
 
