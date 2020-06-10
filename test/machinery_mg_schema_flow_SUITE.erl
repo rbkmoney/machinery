@@ -1,4 +1,4 @@
--module(machinery_mg_schema_versions_SUITE).
+-module(machinery_mg_schema_flow_SUITE).
 
 -behaviour(machinery).
 
@@ -25,8 +25,8 @@
 
 %% machinery_mg_schema callbacks
 
--export([marshal/2]).
--export([unmarshal/2]).
+-export([marshal/3]).
+-export([unmarshal/3]).
 -export([get_version/1]).
 
 %% Internal types
@@ -124,9 +124,9 @@ process_repair(repair_something, #{history := History}, _, _Opts) ->
 
 %% machinery_mg_schema callbacks
 
--spec marshal(machinery_mg_schema:t(), any()) ->
-    machinery_msgpack:t().
-marshal(T, V) when
+-spec marshal(machinery_mg_schema:t(), any(), machinery_mg_schema:context()) ->
+    {machinery_msgpack:t(), machinery_mg_schema:context()}.
+marshal(T, V, C) when
     T =:= {aux_state, 1} orelse
     T =:= {event, 2} orelse
     T =:= {args, init} orelse
@@ -136,11 +136,11 @@ marshal(T, V) when
     T =:= {response, {repair, success}} orelse
     T =:= {response, {repair, failure}}
 ->
-    {bin, erlang:term_to_binary(V)}.
+    {{bin, erlang:term_to_binary(V)}, process_context(T, C)}.
 
--spec unmarshal(machinery_mg_schema:t(), machinery_msgpack:t()) ->
-    any().
-unmarshal(T, V) when
+-spec unmarshal(machinery_mg_schema:t(), machinery_msgpack:t(), machinery_mg_schema:context()) ->
+    {any(), machinery_mg_schema:context()}.
+unmarshal(T, V, C) when
     T =:= {aux_state, 1} orelse
     T =:= {event, 2} orelse
     T =:= {args, init} orelse
@@ -150,13 +150,13 @@ unmarshal(T, V) when
     T =:= {response, {repair, failure}}
 ->
     {bin, EncodedV} = V,
-    erlang:binary_to_term(EncodedV);
-unmarshal({aux_state, undefined}, {bin, <<>>}) ->
+    {erlang:binary_to_term(EncodedV), process_context(T, C)};
+unmarshal({aux_state, undefined} = T, {bin, <<>>}, C) ->
     % initial aux_state
-    undefined;
-unmarshal({response, {repair, success}}, {bin, <<"ok">>}) ->
+    {undefined, process_context(T, C)};
+unmarshal({response, {repair, success}} = T, {bin, <<"ok">>}, C) ->
     % mg repair migration artefact
-    done.
+    {done, process_context(T, C)}.
 
 -spec get_version(machinery_mg_schema:vt()) ->
     machinery_mg_schema:version().
@@ -164,6 +164,31 @@ get_version(aux_state) ->
     1;
 get_version(event) ->
     2.
+
+-spec process_context(machinery_mg_schema:t(), machinery_mg_schema:context()) ->
+    machinery_mg_schema:context() | no_return().
+process_context(T, C) ->
+    ?assertMatch(#{machine_ref := _, machine_ns := general}, C),
+    do_process_context(T, C).
+
+-spec do_process_context(machinery_mg_schema:t(), machinery_mg_schema:context()) ->
+    machinery_mg_schema:context() | no_return().
+do_process_context({response, call}, C) ->
+    ?assertMatch(#{{args, call} := ok}, C),
+    C;
+do_process_context({response, {repair, success}}, C) ->
+    ?assertMatch(#{{args, repair} := ok}, C),
+    C;
+do_process_context({response, {repair, failure}}, C) ->
+    ?assertMatch(#{{args, repair} := ok}, C),
+    C;
+do_process_context({args, _} = T, C) ->
+    C#{T => ok};
+do_process_context({event, _}, C) ->
+    ?assertMatch(#{my_key := test}, C),
+    C;
+do_process_context({aux_state, _}, C) ->
+    C#{my_key => test}.
 
 %% Helpers
 

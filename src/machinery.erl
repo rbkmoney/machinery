@@ -52,6 +52,7 @@
 -export_type([error/1]).
 -export_type([machine/2]).
 -export_type([event/1]).
+-export_type([aux_state/1]).
 
 -type modopts(O) :: module() | {module(), O}.
 

@@ -12,8 +12,8 @@
 %% Storage schema behaviour
 -behaviour(machinery_mg_schema).
 
--export([marshal/2]).
--export([unmarshal/2]).
+-export([marshal/3]).
+-export([unmarshal/3]).
 -export([get_version/1]).
 
 -import(machinery_msgpack, [
@@ -24,18 +24,19 @@
 
 %%
 
--type t()  :: machinery_mg_schema:t().
+-type t() :: machinery_mg_schema:t().
 -type v(T) :: machinery_mg_schema:v(T).
+-type context() :: machinery_mg_schema:context().
 
--spec marshal(t(), v(eterm())) ->
-    machinery_msgpack:t().
-marshal(_T, V) ->
-    marshal(V).
+-spec marshal(t(), v(eterm()), context()) ->
+    {machinery_msgpack:t(), context()}.
+marshal(_T, V, C) ->
+    {marshal(V), C}.
 
--spec unmarshal(t(), machinery_msgpack:t()) ->
-    v(eterm()).
-unmarshal(_T, V) ->
-    unmarshal(V).
+-spec unmarshal(t(), machinery_msgpack:t(), context()) ->
+    {v(eterm()), context()}.
+unmarshal(_T, V, C) ->
+    {unmarshal(V), C}.
 
 -spec get_version(machinery_mg_schema:vt()) ->
     machinery_mg_schema:version().
