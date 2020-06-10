@@ -185,7 +185,7 @@ do_process_context({response, {repair, failure}}, C) ->
 do_process_context({args, _} = T, C) ->
     C#{T => ok};
 do_process_context({event, _}, C) ->
-    ?assertMatch(#{aux_state := _, my_key := test}, C),
+    ?assertMatch(#{my_key := test}, C),
     C;
 do_process_context({aux_state, _}, C) ->
     C#{my_key => test}.

@@ -496,15 +496,14 @@ unmarshal(
     NS1 = unmarshal(namespace, NS),
     Context0 = build_schema_context(NS1, ID1),
     {AuxState1, Context1} = unmarshal({schema, Schema, {aux_state, Version}, Context0}, AuxState),
-    Context2 = Context1#{aux_state => AuxState1},
     Machine = #{
         ns              => ID1,
         id              => NS1,
-        history         => unmarshal({history, Schema, Context2}, History),
+        history         => unmarshal({history, Schema, Context1}, History),
         range           => unmarshal(range, Range),
         aux_state       => AuxState1
     },
-    {Machine, Context2};
+    {Machine, Context1};
 
 unmarshal({history, Schema, Context}, V) ->
     unmarshal({list, {event, Schema, Context}}, V);

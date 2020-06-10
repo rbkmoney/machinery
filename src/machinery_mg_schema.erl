@@ -32,7 +32,6 @@
 -type context() :: #{
     machine_ref := machinery:ref(),
     machine_ns := machinery:namespace(),
-    aux_state => machinery:aux_state(term()),
     created_at => machinery:timestamp(),
     atom() => term()
 }.
