@@ -303,6 +303,9 @@ marshal({signal_result, Schema, Context}, #{} = V) ->
     };
 
 marshal({call_result, Schema, Context}, {Response0, #{} = V}) ->
+    % It is expected that schema doesn't want to save anything in the context here.
+    % The main reason for this is the intention to simplify the code.
+    % So, feel free to change the behavior it is needed for you.
     {Response1, Context} = marshal({schema, Schema, {response, call}, Context}, Response0),
     #mg_stateproc_CallResult{
         response = Response1,
@@ -311,6 +314,7 @@ marshal({call_result, Schema, Context}, {Response0, #{} = V}) ->
     };
 
 marshal({repair_result, Schema, Context}, {Response0, #{} = V}) ->
+    % It is expected that schema doesn't want to save anything in the context here.
     {Response1, Context} = marshal({schema, Schema, {response, {repair, success}}, Context}, Response0),
     #mg_stateproc_RepairResult{
         response = Response1,
@@ -319,6 +323,7 @@ marshal({repair_result, Schema, Context}, {Response0, #{} = V}) ->
     };
 
 marshal({repair_fail, Schema, Context}, Reason) ->
+    % It is expected that schema doesn't want to save anything in the context here.
     {Reason1, Context} = marshal({schema, Schema, {response, {repair, failure}}, Context}, Reason),
     #mg_stateproc_RepairFailed{
         reason = Reason1
@@ -333,6 +338,7 @@ marshal({state_change, Schema, Context}, #{} = V) ->
     };
 
 marshal({new_event_change, EventVersion, Schema, Context}, V) ->
+    % It is expected that schema doesn't want to save anything in the context here.
     {Event, Context} = marshal({schema, Schema, {event, EventVersion}, Context}, V),
     #mg_stateproc_Content{
         data = Event,
@@ -340,6 +346,7 @@ marshal({new_event_change, EventVersion, Schema, Context}, V) ->
     };
 
 marshal({aux_state_change, AuxStateVersion, Schema, Context}, V) ->
+    % It is expected that schema doesn't want to save anything in the context here.
     {AuxState, Context} = marshal({schema, Schema, {aux_state, AuxStateVersion}, Context}, V),
     #mg_stateproc_Content{
         data = AuxState,
@@ -519,6 +526,7 @@ unmarshal(
 ) ->
     CreatedAt1 = unmarshal(timestamp, CreatedAt0),
     Context1 = Context0#{created_at => CreatedAt1},
+    % It is expected that schema doesn't want to save anything in the context here.
     {Payload1, Context1} = unmarshal({schema, Schema, {event, Version}, Context1}, Payload0),
     {
         unmarshal(event_id, EventID),
