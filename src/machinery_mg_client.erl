@@ -38,34 +38,57 @@ new(WoodyClient = #{url := _, event_handler := _}, WoodyCtx) ->
 -type args()                    :: mg_proto_state_processing_thrift:'Args'().
 -type descriptor()              :: mg_proto_state_processing_thrift:'MachineDescriptor'().
 -type call_response()           :: mg_proto_state_processing_thrift:'CallResponse'().
+-type repair_response()         :: mg_proto_state_processing_thrift:'RepairResponse'().
 -type machine()                 :: mg_proto_state_processing_thrift:'Machine'().
 -type namespace_not_found()     :: mg_proto_state_processing_thrift:'NamespaceNotFound'().
 -type machine_not_found()       :: mg_proto_state_processing_thrift:'MachineNotFound'().
 -type machine_already_exists()  :: mg_proto_state_processing_thrift:'MachineAlreadyExists'().
 -type machine_already_working() :: mg_proto_state_processing_thrift:'MachineAlreadyWorking'().
 -type machine_failed()          :: mg_proto_state_processing_thrift:'MachineFailed'().
+-type repair_failed()           :: mg_proto_state_processing_thrift:'RepairFailed'().
+
+-type start_errors() ::
+    namespace_not_found() |
+    machine_already_exists() |
+    machine_failed().
+
+-type call_errors() ::
+    namespace_not_found() |
+    machine_not_found() |
+    machine_failed().
+
+-type repair_errors() ::
+    namespace_not_found() |
+    machine_not_found() |
+    machine_already_working() |
+    machine_failed() |
+    repair_failed().
+
+-type get_errors() ::
+    namespace_not_found() |
+    machine_not_found().
 
 -spec start(namespace(), id(), args(), client()) ->
     {ok, ok} |
-    {exception, namespace_not_found() | machine_already_exists() | machine_failed()}.
+    {exception, start_errors()}.
 start(NS, ID, Args, Client) ->
     issue_call('Start', [NS, ID, Args], Client).
 
 -spec call(descriptor(), args(), client()) ->
     {ok, call_response()} |
-    {exception, namespace_not_found() | machine_not_found() | machine_failed()}.
+    {exception, call_errors()}.
 call(Descriptor, Args, Client) ->
     issue_call('Call', [Descriptor, Args], Client).
 
 -spec repair(descriptor(), args(), client()) ->
-    {ok, ok} |
-    {exception, namespace_not_found() | machine_not_found() | machine_already_working()}.
+    {ok, repair_response()} |
+    {exception, repair_errors()}.
 repair(Descriptor, Args, Client) ->
     issue_call('Repair', [Descriptor, Args], Client).
 
 -spec get_machine(descriptor(), client()) ->
     {ok, machine()} |
-    {exception, namespace_not_found() | machine_not_found()}.
+    {exception, get_errors()}.
 get_machine(Descriptor, Client) ->
     issue_call('GetMachine', [Descriptor], Client).
 

@@ -16,6 +16,7 @@
 -type tag()           :: binary().
 -type args(T)         :: T.
 -type response(T)     :: T.
+-type error(T)        :: T.
 
 -type usec_part()     :: 0..999999.
 -type timestamp()     :: {calendar:datetime(), usec_part()}.
@@ -48,8 +49,10 @@
 -export_type([range/0]).
 -export_type([args/1]).
 -export_type([response/1]).
+-export_type([error/1]).
 -export_type([machine/2]).
 -export_type([event/1]).
+-export_type([aux_state/1]).
 
 -type modopts(O) :: module() | {module(), O}.
 
@@ -81,6 +84,7 @@
 %% Internal API
 -export([dispatch_signal/4]).
 -export([dispatch_call/4]).
+-export([dispatch_repair/4]).
 
 %% Behaviour definition
 -type seconds() :: non_neg_integer().
@@ -113,7 +117,7 @@
     result(E, A).
 
 -callback process_repair(args(_), machine(E, A), handler_args(_), handler_opts(_)) ->
-    result(E, A).
+    {ok, {response(_), result(E, A)}} | {error, error(_)}.
 
 -callback process_timeout(machine(E, A), handler_args(_), handler_opts(_)) ->
     result(E, A).
@@ -141,12 +145,12 @@ call(NS, Ref, Range, Args, Backend) ->
     machinery_backend:call(Module, NS, Ref, Range, Args, Opts).
 
 -spec repair(namespace(), ref(), args(_), backend(_)) ->
-    ok | {error, notfound | working}.
+    {ok, response(_)} | {error, notfound | working}.
 repair(NS, Ref, Args, Backend) ->
     repair(NS, Ref, {undefined, undefined, forward}, Args, Backend).
 
 -spec repair(namespace(), ref(), range(), args(_), backend(_)) ->
-    ok | {error, notfound | working}.
+    {ok, response(_)} | {error, notfound | working | {failed, machinery:error(_)}}.
 repair(NS, Ref, Range, Args, Backend) ->
     {Module, Opts} = machinery_utils:get_backend(Backend),
     machinery_backend:repair(Module, NS, Ref, Range, Args, Opts).
@@ -169,7 +173,12 @@ get(NS, Ref, Range, Backend) ->
 dispatch_signal({init, Args}, Machine, {Handler, HandlerArgs}, Opts) ->
     Handler:init(Args, Machine, HandlerArgs, Opts);
 dispatch_signal({repair, Args}, Machine, {Handler, HandlerArgs}, Opts) ->
-    Handler:process_repair(Args, Machine, HandlerArgs, Opts);
+    case Handler:process_repair(Args, Machine, HandlerArgs, Opts) of
+        {ok, {_Response, Result}} ->
+            Result;
+        {error, Reason} ->
+            erlang:error({repair_failed, Reason})
+    end;
 dispatch_signal(timeout, Machine, {Handler, HandlerArgs}, Opts) ->
     Handler:process_timeout(Machine, HandlerArgs, Opts).
 
@@ -177,3 +186,8 @@ dispatch_signal(timeout, Machine, {Handler, HandlerArgs}, Opts) ->
     {response(_), result(E, A)}.
 dispatch_call(Args, Machine, {Handler, HandlerArgs}, Opts) ->
     Handler:process_call(Args, Machine, HandlerArgs, Opts).
+
+-spec dispatch_repair(args(_), machine(E, A), logic_handler(_), handler_opts(_)) ->
+    {ok, {response(_), result(E, A)}} | {error, error(_)}.
+dispatch_repair(Args, Machine, {Handler, HandlerArgs}, Opts) ->
+    Handler:process_repair(Args, Machine, HandlerArgs, Opts).

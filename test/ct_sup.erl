@@ -20,7 +20,7 @@ start() ->
 -spec stop(pid()) -> ok.
 
 stop(PID) ->
-    true = exit(PID, shutdown),
+    true = exit(PID, kill),
     ok.
 
 %%

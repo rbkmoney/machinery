@@ -50,7 +50,7 @@ init_per_suite(C) ->
     % _ = dbg:tracer(),
     % _ = dbg:p(all, c),
     % _ = dbg:tpl({'woody_client', '_', '_'}, x),
-    {StartedApps, _StartupCtx} = start_apps([lager, machinery]),
+    {StartedApps, _StartupCtx} = start_apps([machinery]),
     SuiteSup = ct_sup:start(),
     start_woody_server([
         {started_apps , StartedApps},
