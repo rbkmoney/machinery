@@ -12,6 +12,7 @@
 -export([call/3]).
 -export([repair/3]).
 -export([get_machine/2]).
+-export([modernize/2]).
 
 -type woody_client() :: #{
     url            := woody:url(),
@@ -68,6 +69,10 @@ new(WoodyClient = #{url := _, event_handler := _}, WoodyCtx) ->
     namespace_not_found() |
     machine_not_found().
 
+-type modernize_errors() ::
+    namespace_not_found() |
+    machine_not_found().
+
 -spec start(namespace(), id(), args(), client()) ->
     {ok, ok} |
     {exception, start_errors()}.
@@ -91,6 +96,12 @@ repair(Descriptor, Args, Client) ->
     {exception, get_errors()}.
 get_machine(Descriptor, Client) ->
     issue_call('GetMachine', [Descriptor], Client).
+
+-spec modernize(descriptor(), client()) ->
+    {ok, ok} |
+    {exception, modernize_errors()}.
+modernize(Descriptor, Client) ->
+    issue_call('Modernize', [Descriptor], Client).
 
 %% Internal functions
 
