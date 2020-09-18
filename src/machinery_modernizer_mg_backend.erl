@@ -111,14 +111,31 @@ modernize(NS, Ref, Range, Opts) ->
 
 -spec handle_function('ModernizeEvent', woody:args(), woody_context:ctx(), backend_handler_opts()) ->
     {ok, mg_proto_state_processing_thrift:'ModernizeEventResult'()}.
-handle_function('ModernizeEvent', [MachineEvent0], _WoodyCtx, Opts) ->
-    #{schema := Schema} = Opts,
-    {MachineEvent, Context} = unmarshal({machine_event, Schema}, MachineEvent0),
+handle_function('ModernizeEvent', [MachineEvent0], _WoodyCtx, #{schema := Schema}) ->
+    {MachineEvent, Context} = unmarshal_machine_event(Schema, MachineEvent0),
     TargetVersion = machinery_mg_schema:get_version(Schema, event),
-    Result = marshal({modernize_event_result, Schema, TargetVersion, Context}, MachineEvent),
-    {ok, Result}.
+    EventPayload = marshal_event_content(Schema, TargetVersion, Context, MachineEvent),
+    {ok, marshal(modernize_event_result, EventPayload)}.
 
 %% Utils
+
+
+unmarshal_machine_event(Schema, #mg_stateproc_MachineEvent{
+    ns = MachineNS,
+    id = MachineID,
+    event = Event
+}) ->
+    ID = unmarshal(id, MachineID),
+    NS = unmarshal(namespace, MachineNS),
+    Context = build_schema_context(NS, ID),
+    {unmarshal({event, Schema, Context}, Event), Context}.
+
+marshal_event_content(Schema, Version, Context0, _Event = #{data := EventData0}) ->
+    {EventData1, Context0} = marshal({schema, Schema, {event, Version}, Context0}, EventData0),
+    #mg_stateproc_Content{
+        format_version = maybe_marshal(format_version, Version),
+        data           = EventData1
+    }.
 
 get_client(#{client := Client, woody_ctx := WoodyCtx}) ->
     machinery_mg_client:new(Client, WoodyCtx).
@@ -131,16 +148,9 @@ build_schema_context(NS, Ref) ->
 
 %% Marshalling
 
-marshal({modernize_event_result, Schema, Version, Context}, MachineEvent) ->
+marshal(modernize_event_result, Content) ->
     #mg_stateproc_ModernizeEventResult{
-        event_payload = marshal({event_payload, Schema, Version, Context}, MachineEvent)
-    };
-
-marshal({event_payload, Schema, Version, Context0}, #{data := EventData0}) ->
-    {EventData1, Context0} = marshal({schema, Schema, {event, Version}, Context0}, EventData0),
-    #mg_stateproc_Content{
-        format_version = maybe_marshal(format_version, Version),
-        data           = EventData1
+        event_payload = Content
     };
 
 marshal(format_version, V) ->
@@ -150,16 +160,6 @@ marshal(T, V) ->
     machinery_mg_codec:marshal(T, V).
 
 %% Unmarshalling
-
-unmarshal({machine_event, Schema}, #mg_stateproc_MachineEvent{
-    ns = MachineNS,
-    id = MachineID,
-    event = Event
-}) ->
-    ID = unmarshal(id, MachineID),
-    NS = unmarshal(namespace, MachineNS),
-    Context = build_schema_context(NS, ID),
-    {unmarshal({event, Schema, Context}, Event), Context};
 
 unmarshal({event, Schema, Context0}, #mg_stateproc_Event{
     id             = EventID,
