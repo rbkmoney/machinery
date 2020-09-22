@@ -15,6 +15,7 @@
 %% Tests
 
 -export([modernizer_test/1]).
+-export([skip_upgrading_test/1]).
 
 %% Machinery callbacks
 
@@ -49,8 +50,9 @@ all() ->
 groups() ->
     [
         {machinery_mg_backend, [], [{group, all}]},
-        {all, [parallel], [
-            modernizer_test
+        {all, [], [
+            modernizer_test,
+            skip_upgrading_test
         ]}
     ].
 
@@ -91,10 +93,27 @@ init_per_testcase(TestCaseName, C) ->
 
 -spec modernizer_test(config()) -> test_return().
 modernizer_test(C) ->
+    _ = setup_test_ets(),
     ID = unique(),
+    true = set_event_version(undefined),
     ?assertEqual(ok, start(ID, init_something, C)),
-    timer:sleep(timer:seconds(5)),
-    ?assertEqual(ok, modernize(ID, C)).
+    [{EventID, Timestamp, Event}] = get_history(ID, C),
+    true = set_event_version(1),
+    ?assertEqual(ok, modernize(ID, C)),
+    ?assertEqual([{EventID, Timestamp, {v1, Event}}], get_history(ID, C)),
+    _ = delete_test_ets().
+
+-spec skip_upgrading_test(config()) -> test_return().
+skip_upgrading_test(C) ->
+    _ = setup_test_ets(),
+    ID = unique(),
+    true = set_event_version(1),
+    ?assertEqual(ok, start(ID, init_something, C)),
+    [{EventID, Timestamp, {v1, Event}}] = get_history(ID, C),
+    true = set_event_version(2),
+    ?assertEqual(ok, modernize(ID, C)),
+    ?assertEqual([{EventID, Timestamp, {v1, Event}}], get_history(ID, C)),
+    _ = delete_test_ets().
 
 %% Machinery handler
 
@@ -131,13 +150,18 @@ process_repair(_Args, _Machine, _, _Opts) ->
 
 -spec marshal(machinery_mg_schema:t(), any(), machinery_mg_schema:context()) ->
     {machinery_msgpack:t(), machinery_mg_schema:context()}.
+marshal({event, 2}, V, C) ->
+    {{bin, erlang:term_to_binary({v2, V})}, C};
 marshal({event, 1}, V, C) ->
-    {{bin, erlang:term_to_binary(V)}, C};
+    {{bin, erlang:term_to_binary({v1, V})}, C};
 marshal(T, V, C) ->
     machinery_mg_schema_generic:marshal(T, V, C).
 
 -spec unmarshal(machinery_mg_schema:t(), machinery_msgpack:t(), machinery_mg_schema:context()) ->
     {any(), machinery_mg_schema:context()}.
+unmarshal({event, 2}, V, C) ->
+    {bin, EncodedV} = V,
+    {erlang:binary_to_term(EncodedV), C};
 unmarshal({event, 1}, V, C) ->
     {bin, EncodedV} = V,
     {erlang:binary_to_term(EncodedV), C};
@@ -149,7 +173,7 @@ unmarshal(T, V, C) ->
 get_version(aux_state) ->
     undefined;
 get_version(event) ->
-    1.
+    get_event_version().
 
 %% Helpers
 
@@ -158,6 +182,13 @@ start(ID, Args, C) ->
 
 modernize(ID, C) ->
     machinery_modernizer:modernize(namespace(), ID, get_modernizer_backend(C)).
+
+get(ID, C) ->
+    machinery:get(namespace(), ID, get_backend(C)).
+
+get_history(ID, C) ->
+    {ok, #{history := History}} = get(ID, C),
+    History.
 
 namespace() ->
     general.
@@ -170,6 +201,21 @@ start_backend(C) ->
         ?config(group_sup, C),
         child_spec(C)
     ).
+
+-define(ETS, test_ets).
+
+setup_test_ets() ->
+    _ = ets:new(?ETS, [set, named_table]).
+
+delete_test_ets() ->
+    _ = ets:delete(?ETS).
+
+set_event_version(Version) ->
+    ets:insert(?ETS, {event_version, Version}).
+
+get_event_version() ->
+    [{event_version, Version}] = ets:lookup(?ETS, event_version),
+    Version.
 
 -spec child_spec(config()) ->
     supervisor:child_spec().
@@ -190,7 +236,7 @@ backend_mg_routes() ->
     BackendConfig = #{
         path => <<"/v1/stateproc">>,
         backend_config => #{
-            schema => machinery_mg_schema_generic
+            schema => ?MODULE
         }
     },
     Handler = {?MODULE, BackendConfig},
@@ -232,7 +278,7 @@ get_backend(machinery_mg_backend, C) ->
                 url => <<"http://machinegun:8022/v1/automaton">>,
                 event_handler => woody_event_handler_default
             },
-            schema => machinery_mg_schema_generic
+            schema => ?MODULE
         }
     );
 get_backend(machinery_modernizer_mg_backend, C) ->
