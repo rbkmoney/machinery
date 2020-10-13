@@ -2,20 +2,20 @@
 
 %% Types
 
--type woody_routes()      :: [woody_server_thrift_http_handler:route(_)].
--type woody_handler()     :: woody:http_handler(woody:th_handler()).
--type handler(T)          :: T.
+-type woody_routes() :: [woody_server_thrift_http_handler:route(_)].
+-type woody_handler() :: woody:http_handler(woody:th_handler()).
+-type handler(T) :: T.
 -type get_woody_handler() :: fun((handler(_), route_opts()) -> woody_handler()).
 
 -type woody_server_config() :: #{
-    ip             := inet:ip_address(),
-    port           := inet:port_number(),
-    protocol_opts  => woody_server_thrift_http_handler:protocol_opts(),
+    ip := inet:ip_address(),
+    port := inet:port_number(),
+    protocol_opts => woody_server_thrift_http_handler:protocol_opts(),
     transport_opts => woody_server_thrift_http_handler:transport_opts()
 }.
 
 -type route_opts() :: #{
-    event_handler  := woody:ev_handler() | [woody:ev_handler()],
+    event_handler := woody:ev_handler() | [woody:ev_handler()],
     handler_limits => woody_server_thrift_http_handler:handler_limits()
 }.
 
@@ -36,40 +36,30 @@
 
 %% API
 
--spec get_handler(machinery:modopts(Opts)) ->
-    {module(), Opts}.
-
+-spec get_handler(machinery:modopts(Opts)) -> {module(), Opts}.
 get_handler(Handler) ->
     expand_modopts(Handler, undefined).
 
--spec get_backend(machinery:backend(Opts)) ->
-    {module(), Opts}.
-
+-spec get_backend(machinery:backend(Opts)) -> {module(), Opts}.
 get_backend(Backend) ->
     expand_modopts(Backend, #{}).
 
--spec expand_modopts(machinery:modopts(Opts), Opts) ->
-    {module(), Opts}.
-
+-spec expand_modopts(machinery:modopts(Opts), Opts) -> {module(), Opts}.
 expand_modopts({Mod, Opts}, _) ->
     {Mod, Opts};
 expand_modopts(Mod, Opts) ->
     {Mod, Opts}.
 
--spec woody_child_spec(_Id, woody_routes(), woody_server_config()) ->
-    supervisor:child_spec().
-
+-spec woody_child_spec(_Id, woody_routes(), woody_server_config()) -> supervisor:child_spec().
 woody_child_spec(Id, Routes, Config) ->
     woody_server:child_spec(Id, Config#{
         %% ev handler for `handlers`, which is `[]`, so this is just to satisfy the spec.
-        event_handler     => woody_event_handler_default,
-        handlers          => [],
+        event_handler => woody_event_handler_default,
+        handlers => [],
         additional_routes => Routes
     }).
 
--spec get_woody_routes([handler(_)], get_woody_handler(), route_opts()) ->
-    woody_routes().
-
+-spec get_woody_routes([handler(_)], get_woody_handler(), route_opts()) -> woody_routes().
 get_woody_routes(Handlers, GetHandler, Opts = #{event_handler := _}) ->
     woody_server_thrift_http_handler:get_routes(Opts#{
         handlers => [GetHandler(H, Opts) || H <- Handlers]

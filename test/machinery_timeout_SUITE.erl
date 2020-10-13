@@ -43,8 +43,7 @@ all() ->
         {group, machinery_mg_backend}
     ].
 
--spec groups() ->
-    [{group_name(), list(), test_case_name()}].
+-spec groups() -> [{group_name(), list(), test_case_name()}].
 groups() ->
     [
         {machinery_mg_backend, [], [{group, all}]},
@@ -61,7 +60,7 @@ groups() ->
 -spec init_per_suite(config()) -> config().
 init_per_suite(C) ->
     {StartedApps, _StartupCtx} = ct_helper:start_apps([machinery]),
-    [{started_apps, StartedApps}| C].
+    [{started_apps, StartedApps} | C].
 
 -spec end_per_suite(config()) -> _.
 end_per_suite(C) ->
@@ -149,8 +148,7 @@ call_with_ranged_timer_test(C) ->
 -type result() :: machinery:result(event(), aux_st()).
 -type response() :: machinery:response(_).
 
--spec init(_Args, machine(), undefined, handler_opts()) ->
-    result().
+-spec init(_Args, machine(), undefined, handler_opts()) -> result().
 init(nop, _Machine, _, _Opts) ->
     #{};
 init(init_timer, _Machine, _, _Opts) ->
@@ -169,18 +167,17 @@ init(init_timer_with_range, _Machine, _, _Opts) ->
         action => {set_timer, {deadline, {{{1990, 01, 01}, {0, 0, 0}}, 0}}, {1, 2, forward}, 15}
     }.
 
--spec process_timeout(machine(), undefined, handler_opts()) ->
-    result().
+-spec process_timeout(machine(), undefined, handler_opts()) -> result().
 process_timeout(#{history := History}, _, _Opts) ->
     Bodies = lists:map(fun({_ID, _CreatedAt, Body}) -> Body end, History),
     #{
         events => [timer_fired],
-        action => unset_timer,  % why not
+        % why not
+        action => unset_timer,
         aux_state => Bodies
     }.
 
--spec process_call(_Args, machine(), undefined, handler_opts()) ->
-    {response(), result()}.
+-spec process_call(_Args, machine(), undefined, handler_opts()) -> {response(), result()}.
 process_call(timer, _Machine, _, _Opts) ->
     {done, #{
         events => lists:seq(1, 10),
@@ -197,8 +194,7 @@ process_call(timer_with_range, _Machine, _, _Opts) ->
         action => {set_timer, {deadline, {{{1990, 01, 01}, {0, 0, 0}}, 0}}, {1, 2, forward}, 15}
     }}.
 
--spec process_repair(_Args, machine(), undefined, handler_opts()) ->
-    no_return().
+-spec process_repair(_Args, machine(), undefined, handler_opts()) -> no_return().
 process_repair(_Args, _Machine, _, _Opts) ->
     erlang:error({not_implemented, process_repair}).
 
@@ -225,13 +221,11 @@ start_backend(C) ->
         child_spec(C)
     ).
 
--spec child_spec(config()) ->
-    supervisor:child_spec().
+-spec child_spec(config()) -> supervisor:child_spec().
 child_spec(C) ->
     child_spec(?config(backend, C), C).
 
--spec child_spec(atom(), config()) ->
-    supervisor:child_spec().
+-spec child_spec(atom(), config()) -> supervisor:child_spec().
 child_spec(machinery_mg_backend, _C) ->
     BackendConfig = #{
         path => <<"/v1/stateproc">>,
@@ -250,13 +244,11 @@ child_spec(machinery_mg_backend, _C) ->
     },
     machinery_utils:woody_child_spec(machinery_mg_backend, Routes, ServerConfig).
 
--spec get_backend(config()) ->
-    machinery_mg_backend:backend().
+-spec get_backend(config()) -> machinery_mg_backend:backend().
 get_backend(C) ->
     get_backend(?config(backend, C), C).
 
--spec get_backend(atom(), config()) ->
-    machinery_mg_backend:backend().
+-spec get_backend(atom(), config()) -> machinery_mg_backend:backend().
 get_backend(machinery_mg_backend, C) ->
     machinery_mg_backend:new(
         ct_helper:get_woody_ctx(C),

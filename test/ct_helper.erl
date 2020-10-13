@@ -26,24 +26,22 @@
 %%
 
 -spec cfg(atom(), config()) -> term().
-
 cfg(Key, Config) ->
     case lists:keyfind(Key, 1, Config) of
         {Key, V} -> V;
-        _        -> error({undefined, Key, Config})
+        _ -> error({undefined, Key, Config})
     end.
 
 %%
 
--type app_name()    :: atom().
--type app_env()     :: [{atom(), term()}].
+-type app_name() :: atom().
+-type app_env() :: [{atom(), term()}].
 -type startup_ctx() :: #{atom() => _}.
 
 -spec start_apps([app_name()]) -> {[Started :: app_name()], startup_ctx()}.
-
 start_apps(AppNames) ->
     lists:foldl(
-        fun (AppName, {SAcc, CtxAcc}) ->
+        fun(AppName, {SAcc, CtxAcc}) ->
             {Started, Ctx} = start_app(AppName),
             {SAcc ++ Started, maps:merge(CtxAcc, Ctx)}
         end,
@@ -52,22 +50,18 @@ start_apps(AppNames) ->
     ).
 
 -spec start_app(app_name()) -> {[Started :: app_name()], startup_ctx()}.
-
 start_app(scoper = AppName) ->
     {start_app_with(AppName, [
-        {storage, scoper_storage_logger}
-    ]), #{}};
-
+            {storage, scoper_storage_logger}
+        ]), #{}};
 start_app(woody = AppName) ->
     {start_app_with(AppName, [
-        {acceptors_pool_size, 4}
-    ]), #{}};
-
+            {acceptors_pool_size, 4}
+        ]), #{}};
 start_app(AppName) ->
     {start_app_with(AppName, []), #{}}.
 
 -spec start_app_with(app_name(), app_env()) -> {[app_name()], #{atom() => _}}.
-
 start_app_with(AppName, Env) ->
     _ = application:load(AppName),
     _ = set_app_env(AppName, Env),
@@ -80,19 +74,17 @@ start_app_with(AppName, Env) ->
 
 set_app_env(AppName, Env) ->
     lists:foreach(
-        fun ({K, V}) ->
+        fun({K, V}) ->
             ok = application:set_env(AppName, K, V)
         end,
         Env
     ).
 
 -spec stop_apps([app_name()]) -> ok.
-
 stop_apps(AppNames) ->
     lists:foreach(fun stop_app/1, lists:reverse(AppNames)).
 
 -spec stop_app(app_name()) -> ok.
-
 stop_app(AppName) ->
     case application:stop(AppName) of
         ok ->
@@ -111,14 +103,12 @@ stop_app(AppName) ->
 -type config_mut_fun() :: fun((config()) -> config()).
 
 -spec makeup_cfg([config_mut_fun()], config()) -> config().
-
 makeup_cfg(CMFs, C0) ->
-    lists:foldl(fun (CMF, C) -> CMF(C) end, C0, CMFs).
+    lists:foldl(fun(CMF, C) -> CMF(C) end, C0, CMFs).
 
 -spec woody_ctx() -> config_mut_fun().
-
 woody_ctx() ->
-    fun (C) -> [{'$woody_ctx', construct_woody_ctx(C)} | C] end.
+    fun(C) -> [{'$woody_ctx', construct_woody_ctx(C)} | C] end.
 
 construct_woody_ctx(C) ->
     woody_context:new(construct_rpc_id(get_test_case_name(C))).
@@ -131,18 +121,15 @@ construct_rpc_id(TestCaseName) ->
     ).
 
 -spec get_woody_ctx(config()) -> woody_context:ctx().
-
 get_woody_ctx(C) ->
     cfg('$woody_ctx', C).
 
 %%
 
 -spec test_case_name(test_case_name()) -> config_mut_fun().
-
 test_case_name(TestCaseName) ->
-    fun (C) -> [{'$test_case_name', TestCaseName} | C] end.
+    fun(C) -> [{'$test_case_name', TestCaseName} | C] end.
 
 -spec get_test_case_name(config()) -> test_case_name().
-
 get_test_case_name(C) ->
     cfg('$test_case_name', C).

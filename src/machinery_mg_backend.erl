@@ -6,20 +6,21 @@
 %%  - There's marshalling scattered around which is common enough for _any_ thrift interface.
 
 -module(machinery_mg_backend).
+
 -include_lib("mg_proto/include/mg_proto_state_processing_thrift.hrl").
 
--type namespace()       :: machinery:namespace().
--type ref()             :: machinery:ref().
--type id()              :: machinery:id().
--type range()           :: machinery:range().
--type args(T)           :: machinery:args(T).
--type response(T)       :: machinery:response(T).
--type error(T)          :: machinery:error(T).
--type machine(E, A)     :: machinery:machine(E, A).
--type logic_handler(T)  :: machinery:logic_handler(T).
+-type namespace() :: machinery:namespace().
+-type ref() :: machinery:ref().
+-type id() :: machinery:id().
+-type range() :: machinery:range().
+-type args(T) :: machinery:args(T).
+-type response(T) :: machinery:response(T).
+-type error(T) :: machinery:error(T).
+-type machine(E, A) :: machinery:machine(E, A).
+-type logic_handler(T) :: machinery:logic_handler(T).
 
 -define(BACKEND_CORE_OPTS,
-    schema          := machinery_mg_schema:schema()
+    schema := machinery_mg_schema:schema()
 ).
 
 -define(MICROS_PER_SEC, (1000 * 1000)).
@@ -30,32 +31,33 @@
 }.
 
 -type handler_config() :: #{
-    path            := woody:path(),
-    backend_config  := backend_config()
+    path := woody:path(),
+    backend_config := backend_config()
 }.
 
--type handler(A)       :: {logic_handler(A), handler_config()}. %% handler server spec
+%% handler server spec
+-type handler(A) :: {logic_handler(A), handler_config()}.
 
 -type handler_opts() :: machinery:handler_opts(#{
-    woody_ctx    := woody_context:ctx()
+    woody_ctx := woody_context:ctx()
 }).
 
 -type backend_handler_opts() :: #{
-    handler      := logic_handler(_),
+    handler := logic_handler(_),
     ?BACKEND_CORE_OPTS
 }.
 
 %% Client types
 -type backend_opts() :: machinery:backend_opts(#{
-    woody_ctx       := woody_context:ctx(),
-    client          := machinery_mg_client:woody_client(),
+    woody_ctx := woody_context:ctx(),
+    client := machinery_mg_client:woody_client(),
     ?BACKEND_CORE_OPTS
 }).
 
 -type backend() :: {?MODULE, backend_opts()}.
 
 -type backend_opts_static() :: #{
-    client          := machinery_mg_client:woody_client(),
+    client := machinery_mg_client:woody_client(),
     ?BACKEND_CORE_OPTS
 }.
 
@@ -87,28 +89,24 @@
 
 %% API
 
--spec get_routes([handler(_)], machinery_utils:route_opts()) ->
-    machinery_utils:woody_routes().
+-spec get_routes([handler(_)], machinery_utils:route_opts()) -> machinery_utils:woody_routes().
 get_routes(Handlers, Opts) ->
     machinery_utils:get_woody_routes(Handlers, fun get_handler/2, Opts).
 
--spec get_handler(handler(_), machinery_utils:route_opts()) ->
-    machinery_utils:woody_handler().
+-spec get_handler(handler(_), machinery_utils:route_opts()) -> machinery_utils:woody_handler().
 get_handler({LogicHandler, #{path := Path, backend_config := Config}}, _) ->
     {Path, {
         {mg_proto_state_processing_thrift, 'Processor'},
         {?MODULE, get_backend_handler_opts(LogicHandler, Config)}
     }}.
 
--spec new(woody_context:ctx(), backend_opts_static()) ->
-    backend().
+-spec new(woody_context:ctx(), backend_opts_static()) -> backend().
 new(WoodyCtx, Opts = #{client := _, schema := _}) ->
     {?MODULE, Opts#{woody_ctx => WoodyCtx}}.
 
 %% Machinery backend
 
--spec start(namespace(), id(), args(_), backend_opts()) ->
-    ok | {error, exists}.
+-spec start(namespace(), id(), args(_), backend_opts()) -> ok | {error, exists}.
 start(NS, ID, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
@@ -125,8 +123,7 @@ start(NS, ID, Args, Opts) ->
             error({failed, NS, ID})
     end.
 
--spec call(namespace(), ref(), range(), args(_), backend_opts()) ->
-    {ok, response(_)} | {error, notfound}.
+-spec call(namespace(), ref(), range(), args(_), backend_opts()) -> {ok, response(_)} | {error, notfound}.
 call(NS, Ref, Range, Args, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
@@ -169,8 +166,7 @@ repair(NS, Ref, Range, Args, Opts) ->
             error({failed, NS, Ref})
     end.
 
--spec get(namespace(), ref(), range(), backend_opts()) ->
-    {ok, machine(_, _)} | {error, notfound}.
+-spec get(namespace(), ref(), range(), backend_opts()) -> {ok, machine(_, _)} | {error, notfound}.
 get(NS, Ref, Range, Opts) ->
     Client = get_client(Opts),
     Schema = get_schema(Opts),
@@ -238,8 +234,7 @@ handle_function('ProcessRepair', FunctionArgs, WoodyCtx, Opts) ->
 
 %% Utils
 
--spec get_backend_handler_opts(logic_handler(_), backend_config()) ->
-    backend_handler_opts().
+-spec get_backend_handler_opts(logic_handler(_), backend_config()) -> backend_handler_opts().
 get_backend_handler_opts(Handler, Config) ->
     Config#{handler => Handler}.
 
@@ -262,18 +257,19 @@ dispatch_repair(Args, Machine, Handler, Opts) ->
     machinery:dispatch_repair(Args, Machine, Handler, Opts).
 
 handle_result(Result, OrigMachine) ->
-    Result#{aux_state => set_aux_state(
-        maps:get(aux_state, Result, undefined),
-        maps:get(aux_state, OrigMachine, machinery_msgpack:nil())
-    )}.
+    Result#{
+        aux_state => set_aux_state(
+            maps:get(aux_state, Result, undefined),
+            maps:get(aux_state, OrigMachine, machinery_msgpack:nil())
+        )
+    }.
 
 set_aux_state(undefined, ReceivedState) ->
     ReceivedState;
 set_aux_state(NewState, _) ->
     NewState.
 
--spec build_schema_context(namespace(), ref()) ->
-    machinery_mg_schema:context().
+-spec build_schema_context(namespace(), ref()) -> machinery_mg_schema:context().
 build_schema_context(NS, Ref) ->
     #{
         machine_ns => NS,
@@ -287,7 +283,6 @@ marshal({signal_result, Schema, Context}, #{} = V) ->
         change = marshal({state_change, Schema, Context}, V),
         action = marshal(action, maps:get(action, V, []))
     };
-
 marshal({call_result, Schema, Context}, {Response0, #{} = V}) ->
     % It is expected that schema doesn't want to save anything in the context here.
     % The main reason for this is the intention to simplify the code.
@@ -295,26 +290,23 @@ marshal({call_result, Schema, Context}, {Response0, #{} = V}) ->
     {Response1, Context} = marshal({schema, Schema, {response, call}, Context}, Response0),
     #mg_stateproc_CallResult{
         response = Response1,
-        change   = marshal({state_change, Schema, Context}, V),
-        action   = marshal(action, maps:get(action, V, []))
+        change = marshal({state_change, Schema, Context}, V),
+        action = marshal(action, maps:get(action, V, []))
     };
-
 marshal({repair_result, Schema, Context}, {Response0, #{} = V}) ->
     % It is expected that schema doesn't want to save anything in the context here.
     {Response1, Context} = marshal({schema, Schema, {response, {repair, success}}, Context}, Response0),
     #mg_stateproc_RepairResult{
         response = Response1,
-        change   = marshal({state_change, Schema, Context}, V),
-        action   = marshal(action, maps:get(action, V, []))
+        change = marshal({state_change, Schema, Context}, V),
+        action = marshal(action, maps:get(action, V, []))
     };
-
 marshal({repair_fail, Schema, Context}, Reason) ->
     % It is expected that schema doesn't want to save anything in the context here.
     {Reason1, Context} = marshal({schema, Schema, {response, {repair, failure}}, Context}, Reason),
     #mg_stateproc_RepairFailed{
         reason = Reason1
     };
-
 marshal({state_change, Schema, Context}, #{} = V) ->
     AuxStateVersion = machinery_mg_schema:get_version(Schema, aux_state),
     EventVersion = machinery_mg_schema:get_version(Schema, event),
@@ -322,7 +314,6 @@ marshal({state_change, Schema, Context}, #{} = V) ->
         events = marshal({list, {new_event_change, EventVersion, Schema, Context}}, maps:get(events, V, [])),
         aux_state = marshal({aux_state_change, AuxStateVersion, Schema, Context}, maps:get(aux_state, V, undefined))
     };
-
 marshal({new_event_change, EventVersion, Schema, Context}, V) ->
     % It is expected that schema doesn't want to save anything in the context here.
     {Event, Context} = marshal({schema, Schema, {event, EventVersion}, Context}, V),
@@ -330,7 +321,6 @@ marshal({new_event_change, EventVersion, Schema, Context}, V) ->
         data = Event,
         format_version = EventVersion
     };
-
 marshal({aux_state_change, AuxStateVersion, Schema, Context}, V) ->
     % It is expected that schema doesn't want to save anything in the context here.
     {AuxState, Context} = marshal({schema, Schema, {aux_state, AuxStateVersion}, Context}, V),
@@ -338,22 +328,16 @@ marshal({aux_state_change, AuxStateVersion, Schema, Context}, V) ->
         data = AuxState,
         format_version = AuxStateVersion
     };
-
 marshal(action, V) when is_list(V) ->
     lists:foldl(fun apply_action/2, #mg_stateproc_ComplexAction{}, V);
-
 marshal(action, V) ->
     marshal(action, [V]);
-
 marshal(timer, {timeout, V}) ->
     {timeout, marshal(integer, V)};
-
 marshal(timer, {deadline, V}) ->
     {deadline, marshal(timestamp, V)};
-
 marshal({list, T}, V) when is_list(V) ->
     [marshal(T, E) || E <- V];
-
 marshal(T, V) ->
     machinery_mg_codec:marshal(T, V).
 
@@ -361,39 +345,35 @@ apply_action({set_timer, V}, CA) ->
     CA#mg_stateproc_ComplexAction{
         timer = {set_timer, #mg_stateproc_SetTimerAction{timer = marshal(timer, V)}}
     };
-
 apply_action({set_timer, T, Range}, CA) ->
     CA#mg_stateproc_ComplexAction{
-        timer = {set_timer, #mg_stateproc_SetTimerAction{
-            timer   = marshal(timer, T),
-            range   = marshal(range, Range)
-        }}
+        timer =
+            {set_timer, #mg_stateproc_SetTimerAction{
+                timer = marshal(timer, T),
+                range = marshal(range, Range)
+            }}
     };
-
 apply_action({set_timer, T, Range, HandlingTimeout}, CA) ->
     CA#mg_stateproc_ComplexAction{
-        timer = {set_timer, #mg_stateproc_SetTimerAction{
-            timer   = marshal(timer, T),
-            range   = marshal(range, Range),
-            timeout = marshal(integer, HandlingTimeout)
-        }}
+        timer =
+            {set_timer, #mg_stateproc_SetTimerAction{
+                timer = marshal(timer, T),
+                range = marshal(range, Range),
+                timeout = marshal(integer, HandlingTimeout)
+            }}
     };
-
 apply_action(unset_timer, CA) ->
     CA#mg_stateproc_ComplexAction{
         timer = {unset_timer, #mg_stateproc_UnsetTimerAction{}}
     };
-
 apply_action(continue, CA) ->
     CA#mg_stateproc_ComplexAction{
         timer = {set_timer, #mg_stateproc_SetTimerAction{timer = {timeout, 0}}}
     };
-
 apply_action(remove, CA) ->
     CA#mg_stateproc_ComplexAction{
         remove = #mg_stateproc_RemoveAction{}
     };
-
 apply_action({tag, Tag}, CA) ->
     CA#mg_stateproc_ComplexAction{
         tag = #mg_stateproc_TagAction{
@@ -404,11 +384,11 @@ apply_action({tag, Tag}, CA) ->
 unmarshal(
     {machine, Schema},
     #mg_stateproc_Machine{
-        'ns'            = NS,
-        'id'            = ID,
-        'history'       = History,
+        'ns' = NS,
+        'id' = ID,
+        'history' = History,
         'history_range' = Range,
-        'aux_state'     = #mg_stateproc_Content{format_version = Version, data = AuxState}
+        'aux_state' = #mg_stateproc_Content{format_version = Version, data = AuxState}
     }
 ) ->
     ID1 = unmarshal(id, ID),
@@ -416,24 +396,22 @@ unmarshal(
     Context0 = build_schema_context(NS1, ID1),
     {AuxState1, Context1} = unmarshal({schema, Schema, {aux_state, Version}, Context0}, AuxState),
     Machine = #{
-        ns              => ID1,
-        id              => NS1,
-        history         => unmarshal({history, Schema, Context1}, History),
-        range           => unmarshal(range, Range),
-        aux_state       => AuxState1
+        ns => ID1,
+        id => NS1,
+        history => unmarshal({history, Schema, Context1}, History),
+        range => unmarshal(range, Range),
+        aux_state => AuxState1
     },
     {Machine, Context1};
-
 unmarshal({history, Schema, Context}, V) ->
     unmarshal({list, {event, Schema, Context}}, V);
-
 unmarshal(
     {event, Schema, Context0},
     #mg_stateproc_Event{
-        'id'             = EventID,
-        'created_at'     = CreatedAt0,
+        'id' = EventID,
+        'created_at' = CreatedAt0,
         'format_version' = Version,
-        'data'           = Payload0
+        'data' = Payload0
     }
 ) ->
     CreatedAt1 = unmarshal(timestamp, CreatedAt0),
@@ -445,20 +423,15 @@ unmarshal(
         CreatedAt1,
         Payload1
     };
-
 unmarshal({signal, Schema, Context0}, {init, #mg_stateproc_InitSignal{arg = Args0}}) ->
     {Args1, Context1} = unmarshal({schema, Schema, {args, init}, Context0}, Args0),
     {{init, Args1}, Context1};
-
 unmarshal({signal, _Schema, Context}, {timeout, #mg_stateproc_TimeoutSignal{}}) ->
     {timeout, Context};
-
 unmarshal({signal, Schema, Context0}, {repair, #mg_stateproc_RepairSignal{arg = Args0}}) ->
     {Args1, Context1} = unmarshal({schema, Schema, {args, repair}, Context0}, Args0),
     {{repair, Args1}, Context1};
-
 unmarshal({list, T}, V) when is_list(V) ->
     [unmarshal(T, E) || E <- V];
-
 unmarshal(T, V) ->
     machinery_mg_codec:unmarshal(T, V).

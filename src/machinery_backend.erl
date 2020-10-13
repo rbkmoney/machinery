@@ -11,31 +11,27 @@
 
 %% Behaviour definition
 
--type namespace()    :: machinery:namespace().
--type id()           :: machinery:id().
--type ref()          :: machinery:ref().
--type range()        :: machinery:range().
--type args()         :: machinery:args(_).
+-type namespace() :: machinery:namespace().
+-type id() :: machinery:id().
+-type ref() :: machinery:ref().
+-type range() :: machinery:range().
+-type args() :: machinery:args(_).
 -type backend_opts() :: machinery:backend_opts(_).
 
--callback start(namespace(), id(), args(), backend_opts()) ->
-    ok | {error, exists}.
+-callback start(namespace(), id(), args(), backend_opts()) -> ok | {error, exists}.
 
--callback call(namespace(), id(), range(), args(), backend_opts()) ->
-    {ok, machinery:response(_)} | {error, notfound}.
+-callback call(namespace(), id(), range(), args(), backend_opts()) -> {ok, machinery:response(_)} | {error, notfound}.
 
 -callback repair(namespace(), id(), range(), args(), backend_opts()) ->
     {ok, machinery:response(_)} | {error, {failed, machinery:error(_)} | notfound | working}.
 
--callback get(namespace(), id(), range(), backend_opts()) ->
-    {ok, machinery:machine(_, _)} | {error, notfound}.
+-callback get(namespace(), id(), range(), backend_opts()) -> {ok, machinery:machine(_, _)} | {error, notfound}.
 
 %% API
 
 -type backend() :: module().
 
--spec start(backend(), namespace(), id(), args(), backend_opts()) ->
-    ok | {error, exists}.
+-spec start(backend(), namespace(), id(), args(), backend_opts()) -> ok | {error, exists}.
 start(Backend, Namespace, Id, Args, Opts) ->
     Backend:start(Namespace, Id, Args, Opts).
 
@@ -49,7 +45,6 @@ call(Backend, Namespace, Ref, Range, Args, Opts) ->
 repair(Backend, Namespace, Ref, Range, Args, Opts) ->
     Backend:repair(Namespace, Ref, Range, Args, Opts).
 
--spec get(backend(), namespace(), ref(), range(), backend_opts()) ->
-    {ok, machinery:machine(_, _)} | {error, notfound}.
+-spec get(backend(), namespace(), ref(), range(), backend_opts()) -> {ok, machinery:machine(_, _)} | {error, notfound}.
 get(Backend, Namespace, Ref, Range, Opts) ->
     Backend:get(Namespace, Ref, Range, Opts).

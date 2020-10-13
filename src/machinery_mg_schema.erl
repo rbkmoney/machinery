@@ -3,26 +3,23 @@
 
 -module(machinery_mg_schema).
 
-
 %% Behaviour definition
 
 -type schema() :: module().
 
 -type t() ::
     {args,
-        init |
-        repair |
+        init
+        | repair
+        | call}
+    | {response,
         call
-    } |
-    {response,
-        call |
-        {repair,
-            success |
-            failure
-        }
-    } |
-    {event, Version} |
-    {aux_state, Version}.
+        | {repair,
+            success
+            | failure}}
+    | {event, Version}
+    | {aux_state, Version}.
+
 -type v(T) ::
     T.
 
@@ -36,14 +33,11 @@
     atom() => term()
 }.
 
--callback marshal(t(), v(_), context()) ->
-    {machinery_msgpack:t(), context()}.
+-callback marshal(t(), v(_), context()) -> {machinery_msgpack:t(), context()}.
 
--callback unmarshal(t(), machinery_msgpack:t(), context()) ->
-    {v(_), context()}.
+-callback unmarshal(t(), machinery_msgpack:t(), context()) -> {v(_), context()}.
 
--callback get_version(vt()) ->
-    version().
+-callback get_version(vt()) -> version().
 
 -export_type([schema/0]).
 -export_type([t/0]).
@@ -58,17 +52,14 @@
 -export([unmarshal/4]).
 -export([get_version/2]).
 
--spec marshal(schema(), t(), v(_), context()) ->
-    {machinery_msgpack:t(), context()}.
+-spec marshal(schema(), t(), v(_), context()) -> {machinery_msgpack:t(), context()}.
 marshal(Schema, T, V, C) ->
     Schema:marshal(T, V, C).
 
--spec unmarshal(schema(), t(), machinery_msgpack:t(), context()) ->
-    {v(_), context()}.
+-spec unmarshal(schema(), t(), machinery_msgpack:t(), context()) -> {v(_), context()}.
 unmarshal(Schema, T, V, C) ->
     Schema:unmarshal(T, V, C).
 
--spec get_version(schema(), vt()) ->
-    version().
+-spec get_version(schema(), vt()) -> version().
 get_version(Schema, T) ->
     Schema:get_version(T).

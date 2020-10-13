@@ -45,8 +45,7 @@ all() ->
         {group, machinery_mg_backend}
     ].
 
--spec groups() ->
-    [{group_name(), list(), test_case_name()}].
+-spec groups() -> [{group_name(), list(), test_case_name()}].
 groups() ->
     [
         {machinery_mg_backend, [], [{group, all}]},
@@ -59,7 +58,7 @@ groups() ->
 -spec init_per_suite(config()) -> config().
 init_per_suite(C) ->
     {StartedApps, _StartupCtx} = ct_helper:start_apps([machinery]),
-    [{started_apps, StartedApps}| C].
+    [{started_apps, StartedApps} | C].
 
 -spec end_per_suite(config()) -> _.
 end_per_suite(C) ->
@@ -71,7 +70,8 @@ init_per_group(machinery_mg_backend = Name, C0) ->
     C1 = [
         {backend, Name},
         {modernizer_backend, machinery_modernizer_mg_backend},
-        {group_sup, ct_sup:start()} | C0
+        {group_sup, ct_sup:start()}
+        | C0
     ],
     {ok, _Pid} = start_backend(C1),
     C1;
@@ -123,26 +123,22 @@ skip_upgrading_test(C) ->
 -type handler_opts() :: machinery:handler_opts(_).
 -type result() :: machinery:result(event(), aux_st()).
 
--spec init(_Args, machine(), undefined, handler_opts()) ->
-    result().
+-spec init(_Args, machine(), undefined, handler_opts()) -> result().
 init(init_something, _Machine, _, _Opts) ->
     #{
         events => [init_event],
         aux_state => #{}
     }.
 
--spec process_timeout(machine(), undefined, handler_opts()) ->
-    result().
+-spec process_timeout(machine(), undefined, handler_opts()) -> result().
 process_timeout(_Args, _, _Opts) ->
     erlang:error({not_implemented, process_timeout}).
 
--spec process_call(_Args, machine(), undefined, handler_opts()) ->
-    no_return().
+-spec process_call(_Args, machine(), undefined, handler_opts()) -> no_return().
 process_call(_Args, _Machine, _, _Opts) ->
     erlang:error({not_implemented, process_call}).
 
--spec process_repair(_Args, machine(), undefined, handler_opts()) ->
-    no_return().
+-spec process_repair(_Args, machine(), undefined, handler_opts()) -> no_return().
 process_repair(_Args, _Machine, _, _Opts) ->
     erlang:error({not_implemented, process_repair}).
 
@@ -168,8 +164,7 @@ unmarshal({event, 1}, V, C) ->
 unmarshal(T, V, C) ->
     machinery_mg_schema_generic:unmarshal(T, V, C).
 
--spec get_version(machinery_mg_schema:vt()) ->
-    machinery_mg_schema:version().
+-spec get_version(machinery_mg_schema:vt()) -> machinery_mg_schema:version().
 get_version(aux_state) ->
     undefined;
 get_version(event) ->
@@ -217,13 +212,11 @@ get_event_version() ->
     [{event_version, Version}] = ets:lookup(?ETS, event_version),
     Version.
 
--spec child_spec(config()) ->
-    supervisor:child_spec().
+-spec child_spec(config()) -> supervisor:child_spec().
 child_spec(C) ->
     child_spec(?config(backend, C), C).
 
--spec child_spec(atom(), config()) ->
-    supervisor:child_spec().
+-spec child_spec(atom(), config()) -> supervisor:child_spec().
 child_spec(machinery_mg_backend, _C) ->
     Routes = backend_mg_routes() ++ modernizer_mg_routes(),
     ServerConfig = #{
@@ -257,19 +250,17 @@ modernizer_mg_routes() ->
         #{event_handler => woody_event_handler_default}
     ).
 
--spec get_backend(config()) ->
-    machinery_mg_backend:backend().
+-spec get_backend(config()) -> machinery_mg_backend:backend().
 get_backend(C) ->
     get_backend(?config(backend, C), C).
 
--spec get_modernizer_backend(config()) ->
-    machinery_mg_backend:backend().
+-spec get_modernizer_backend(config()) -> machinery_mg_backend:backend().
 get_modernizer_backend(C) ->
     get_backend(?config(modernizer_backend, C), C).
 
 -spec get_backend(atom(), config()) ->
-    machinery_mg_backend:backend() |
-    machinery_modernizer_mg_backend:backend().
+    machinery_mg_backend:backend()
+    | machinery_modernizer_mg_backend:backend().
 get_backend(machinery_mg_backend, C) ->
     machinery_mg_backend:new(
         ct_helper:get_woody_ctx(C),

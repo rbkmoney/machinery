@@ -2,6 +2,7 @@
 %%% Msgpack manipulation employed by machinegun interfaces.
 
 -module(machinery_msgpack).
+
 -include_lib("mg_proto/include/mg_proto_msgpack_thrift.hrl").
 
 %% API
@@ -18,15 +19,16 @@
 %%
 
 -spec wrap
-    (nil               ) -> t();
-    (boolean()         ) -> t();
-    (integer()         ) -> t();
-    (float()           ) -> t();
-    (binary()          ) -> t(); %% string
-    ({binary, binary()}) -> t(); %% binary
-    ([t()]             ) -> t();
-    (#{t() => t()}     ) -> t().
-
+    (nil) -> t();
+    (boolean()) -> t();
+    (integer()) -> t();
+    (float()) -> t();
+    %% string
+    (binary()) -> t();
+    %% binary
+    ({binary, binary()}) -> t();
+    ([t()]) -> t();
+    (#{t() => t()}) -> t().
 wrap(nil) ->
     {nl, #mg_msgpack_Nil{}};
 wrap(V) when is_boolean(V) ->
@@ -46,15 +48,16 @@ wrap(V) when is_map(V) ->
     {obj, V}.
 
 -spec unwrap(t()) ->
-    nil                |
-    boolean()          |
-    integer()          |
-    float()            |
-    binary()           | %% string
-    {binary, binary()} | %% binary
-    [t()]              |
-    #{t() => t()}      .
-
+    nil
+    | boolean()
+    | integer()
+    | float()
+    %% string
+    | binary()
+    %% binary
+    | {binary, binary()}
+    | [t()]
+    | #{t() => t()}.
 unwrap({nl, #mg_msgpack_Nil{}}) ->
     nil;
 unwrap({b, V}) when is_boolean(V) ->
@@ -76,6 +79,5 @@ unwrap({obj, V}) when is_map(V) ->
 %%
 
 -spec nil() -> t().
-
 nil() ->
     wrap(nil).
