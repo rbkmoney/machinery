@@ -9,7 +9,7 @@ SUBTARGETS = $(patsubst %,%/.git,$(SUBMODULES))
 SERVICE_NAME := machinery
 BUILD_IMAGE_TAG := 0c638a682f4735a65ef232b81ed872ba494574c3
 
-CALL_ANYWHERE := all submodules compile xref lint dialyze clean distclean
+CALL_ANYWHERE := all submodules compile xref lint dialyze clean distclean check_format format
 
 CALL_W_CONTAINER := $(CALL_ANYWHERE) test
 
@@ -33,6 +33,12 @@ xref: submodules
 
 lint:
 	elvis rock
+
+check_format:
+	$(REBAR) as test fmt -c
+
+format:
+	$(REBAR) fmt -w
 
 dialyze: submodules
 	$(REBAR) dialyzer

@@ -42,8 +42,7 @@ all() ->
         {group, all}
     ].
 
--spec groups() ->
-    [{group_name(), list(), test_case_name()}].
+-spec groups() -> [{group_name(), list(), test_case_name()}].
 groups() ->
     [
         {all, [parallel], [
@@ -56,7 +55,7 @@ init_per_suite(C0) ->
     {StartedApps, _StartupCtx} = ct_helper:start_apps([machinery]),
     C1 = [{backend, machinery_mg_backend}, {group_sup, ct_sup:start()} | C0],
     {ok, _Pid} = start_backend(C1),
-    [{started_apps, StartedApps}| C1].
+    [{started_apps, StartedApps} | C1].
 
 -spec end_per_suite(config()) -> _.
 end_per_suite(C) ->
@@ -89,8 +88,7 @@ schema_versions_used_properly_test(C) ->
 -type result() :: machinery:result(event(), aux_st()).
 -type response() :: machinery:response(_).
 
--spec init(_Args, machine(), undefined, handler_opts()) ->
-    result().
+-spec init(_Args, machine(), undefined, handler_opts()) -> result().
 init(init_something, _Machine, _, _Opts) ->
     #{
         events => [init_event],
@@ -98,17 +96,16 @@ init(init_something, _Machine, _, _Opts) ->
         aux_state => #{some => <<"complex">>, aux_state => 1}
     }.
 
--spec process_timeout(machine(), undefined, handler_opts()) ->
-    result().
+-spec process_timeout(machine(), undefined, handler_opts()) -> result().
 process_timeout(_Machine, _, _Opts) ->
     #{
         events => [{timeout_event, 1}],
-        action => unset_timer,  % why not
+        % why not
+        action => unset_timer,
         aux_state => #{some => <<"other complex">>, aux_state => 1}
     }.
 
--spec process_call(_Args, machine(), undefined, handler_opts()) ->
-    {response(), result()}.
+-spec process_call(_Args, machine(), undefined, handler_opts()) -> {response(), result()}.
 process_call(do_something, _Machine, _, _Opts) ->
     {done, #{
         events => [call_event],
@@ -117,8 +114,7 @@ process_call(do_something, _Machine, _, _Opts) ->
 process_call(fail, _Machine, _, _Opts) ->
     erlang:error(fail).
 
--spec process_repair(_Args, machine(), undefined, handler_opts()) ->
-    no_return().
+-spec process_repair(_Args, machine(), undefined, handler_opts()) -> no_return().
 process_repair(repair_something, #{history := History}, _, _Opts) ->
     {ok, {done, #{events => [{count_events, erlang:length(History)}]}}}.
 
@@ -128,13 +124,13 @@ process_repair(repair_something, #{history := History}, _, _Opts) ->
     {machinery_msgpack:t(), machinery_mg_schema:context()}.
 marshal(T, V, C) when
     T =:= {aux_state, 1} orelse
-    T =:= {event, 2} orelse
-    T =:= {args, init} orelse
-    T =:= {args, call} orelse
-    T =:= {args, repair} orelse
-    T =:= {response, call} orelse
-    T =:= {response, {repair, success}} orelse
-    T =:= {response, {repair, failure}}
+        T =:= {event, 2} orelse
+        T =:= {args, init} orelse
+        T =:= {args, call} orelse
+        T =:= {args, repair} orelse
+        T =:= {response, call} orelse
+        T =:= {response, {repair, success}} orelse
+        T =:= {response, {repair, failure}}
 ->
     {{bin, erlang:term_to_binary(V)}, process_context(T, C)}.
 
@@ -142,12 +138,12 @@ marshal(T, V, C) when
     {any(), machinery_mg_schema:context()}.
 unmarshal(T, V, C) when
     T =:= {aux_state, 1} orelse
-    T =:= {event, 2} orelse
-    T =:= {args, init} orelse
-    T =:= {args, call} orelse
-    T =:= {args, repair} orelse
-    T =:= {response, call} orelse
-    T =:= {response, {repair, failure}}
+        T =:= {event, 2} orelse
+        T =:= {args, init} orelse
+        T =:= {args, call} orelse
+        T =:= {args, repair} orelse
+        T =:= {response, call} orelse
+        T =:= {response, {repair, failure}}
 ->
     {bin, EncodedV} = V,
     {erlang:binary_to_term(EncodedV), process_context(T, C)};
@@ -158,8 +154,7 @@ unmarshal({response, {repair, success}} = T, {bin, <<"ok">>}, C) ->
     % mg repair migration artefact
     {done, process_context(T, C)}.
 
--spec get_version(machinery_mg_schema:vt()) ->
-    machinery_mg_schema:version().
+-spec get_version(machinery_mg_schema:vt()) -> machinery_mg_schema:version().
 get_version(aux_state) ->
     1;
 get_version(event) ->
@@ -213,13 +208,11 @@ start_backend(C) ->
         child_spec(C)
     ).
 
--spec child_spec(config()) ->
-    supervisor:child_spec().
+-spec child_spec(config()) -> supervisor:child_spec().
 child_spec(C) ->
     child_spec(?config(backend, C), C).
 
--spec child_spec(atom(), config()) ->
-    supervisor:child_spec().
+-spec child_spec(atom(), config()) -> supervisor:child_spec().
 child_spec(machinery_mg_backend, _C) ->
     BackendConfig = #{
         path => <<"/v1/stateproc">>,
@@ -238,13 +231,11 @@ child_spec(machinery_mg_backend, _C) ->
     },
     machinery_utils:woody_child_spec(machinery_mg_backend, Routes, ServerConfig).
 
--spec get_backend(config()) ->
-    machinery_mg_backend:backend().
+-spec get_backend(config()) -> machinery_mg_backend:backend().
 get_backend(C) ->
     get_backend(?config(backend, C), C).
 
--spec get_backend(atom(), config()) ->
-    machinery_mg_backend:backend().
+-spec get_backend(atom(), config()) -> machinery_mg_backend:backend().
 get_backend(machinery_mg_backend, C) ->
     machinery_mg_backend:new(
         ct_helper:get_woody_ctx(C),

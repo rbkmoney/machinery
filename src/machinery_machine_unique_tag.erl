@@ -5,10 +5,10 @@
 
 %% API
 
--type id()        :: machinery:id().
+-type id() :: machinery:id().
 -type namespace() :: machinery:namespace().
--type timer()     :: machinery:timer().
--type tag()       :: binary().
+-type timer() :: machinery:timer().
+-type tag() :: binary().
 
 -export_type([tag/0]).
 
@@ -28,8 +28,7 @@
 
 %%
 
--spec tag(namespace(), tag(), id(), machinery:backend(_)) ->
-    ok | {error, {set, id()}}.
+-spec tag(namespace(), tag(), id(), machinery:backend(_)) -> ok | {error, {set, id()}}.
 tag(NS, Tag, ID, Backend) ->
     case machinery:start(construct_namespace(NS), Tag, {tag, ID}, Backend) of
         ok ->
@@ -45,8 +44,7 @@ tag(NS, Tag, ID, Backend) ->
             end
     end.
 
--spec tag_until(namespace(), tag(), id(), timer(), machinery:backend(_)) ->
-    ok | {error, {set, id()}}.
+-spec tag_until(namespace(), tag(), id(), timer(), machinery:backend(_)) -> ok | {error, {set, id()}}.
 tag_until(NS, Tag, ID, Timer, Backend) ->
     case machinery:start(construct_namespace(NS), Tag, {tag, ID, Timer}, Backend) of
         ok ->
@@ -62,8 +60,7 @@ tag_until(NS, Tag, ID, Timer, Backend) ->
             end
     end.
 
--spec untag(namespace(), tag(), id(), machinery:backend(_)) ->
-    ok | {error, {set, id()}}.
+-spec untag(namespace(), tag(), id(), machinery:backend(_)) -> ok | {error, {set, id()}}.
 untag(NS, Tag, ID, Backend) ->
     case machinery:call(construct_namespace(NS), Tag, {untag, ID}, Backend) of
         {ok, ok} ->
@@ -74,8 +71,7 @@ untag(NS, Tag, ID, Backend) ->
             ok
     end.
 
--spec get(namespace(), tag(), machinery:backend(_)) ->
-    {ok, id()} | {error, unset}.
+-spec get(namespace(), tag(), machinery:backend(_)) -> {ok, id()} | {error, unset}.
 get(NS, Tag, Backend) ->
     case machinery:get(construct_namespace(NS), Tag, Backend) of
         {ok, Machine} ->
@@ -90,17 +86,16 @@ construct_namespace(NS) ->
 
 %%
 
--type machine()      :: machinery:machine(ev(), _).
+-type machine() :: machinery:machine(ev(), _).
 -type handler_opts() :: machinery:handler_opts(_).
--type result()       :: machinery:result(ev(), _).
--type response()     :: machinery:response(
+-type result() :: machinery:result(ev(), _).
+-type response() :: machinery:response(
     ok | {error, id()}
 ).
 
 -type ev() :: id().
 
--spec init({tag, id()}, machine(), undefined, handler_opts()) ->
-    result().
+-spec init({tag, id()}, machine(), undefined, handler_opts()) -> result().
 init({tag, ID}, _Machine, _, _Opts) ->
     #{
         events => [ID]
@@ -111,15 +106,13 @@ init({tag, ID, Timer}, _Machine, _, _Opts) ->
         action => [{set_timer, Timer, {undefined, 0, forward}}]
     }.
 
--spec process_timeout(machine(), undefined, handler_opts()) ->
-    result().
+-spec process_timeout(machine(), undefined, handler_opts()) -> result().
 process_timeout(#{}, _, _Opts) ->
     #{
         action => [remove]
     }.
 
--spec process_call({untag, id()}, machine(), undefined, handler_opts()) ->
-    {response(), result()}.
+-spec process_call({untag, id()}, machine(), undefined, handler_opts()) -> {response(), result()}.
 process_call({untag, ID}, Machine, _, _Opts) ->
     case get_machine_st(Machine) of
         ID ->
@@ -130,8 +123,7 @@ process_call({untag, ID}, Machine, _, _Opts) ->
             {{error, IDWas}, #{}}
     end.
 
--spec process_repair({untag, id()}, machine(), undefined, handler_opts()) ->
-    no_return().
+-spec process_repair({untag, id()}, machine(), undefined, handler_opts()) -> no_return().
 process_repair(_Args, _Machine, _, _Opts) ->
     erlang:error({not_implemented, repair}).
 

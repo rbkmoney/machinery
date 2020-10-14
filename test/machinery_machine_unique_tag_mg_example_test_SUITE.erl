@@ -26,26 +26,24 @@
 
 %%
 
--type config()         :: ct_helper:config().
+-type config() :: ct_helper:config().
 -type test_case_name() :: ct_helper:test_case_name().
--type group_name()     :: ct_helper:group_name().
--type test_return()    :: _ | no_return().
+-type group_name() :: ct_helper:group_name().
+-type test_return() :: _ | no_return().
 
 -spec all() -> [test_case_name() | {group, group_name()}].
-
 all() ->
     [
-        tag_success            ,
-        tag_twice_success      ,
-        single_tag_set_only    ,
-        untag_success          ,
-        conflict_untag_failure ,
-        reset_tag_success      ,
+        tag_success,
+        tag_twice_success,
+        single_tag_set_only,
+        untag_success,
+        conflict_untag_failure,
+        reset_tag_success,
         tag_unset_timely
     ].
 
 -spec init_per_suite(config()) -> config().
-
 init_per_suite(C) ->
     % _ = dbg:tracer(),
     % _ = dbg:p(all, c),
@@ -53,9 +51,10 @@ init_per_suite(C) ->
     {StartedApps, _StartupCtx} = start_apps([machinery]),
     SuiteSup = ct_sup:start(),
     start_woody_server([
-        {started_apps , StartedApps},
-        {suite_sup    , SuiteSup}
-    | C]).
+        {started_apps, StartedApps},
+        {suite_sup, SuiteSup}
+        | C
+    ]).
 
 start_woody_server(C) ->
     {ok, PID} = supervisor:start_child(
@@ -65,21 +64,18 @@ start_woody_server(C) ->
     [{payproc_mg_machine_sup, PID} | C].
 
 -spec end_per_suite(config()) -> _.
-
 end_per_suite(C) ->
     ok = ct_sup:stop(cfg(suite_sup, C)),
     ok = ct_helper:stop_apps(cfg(started_apps, C)),
     ok.
 
 -spec init_per_testcase(test_case_name(), config()) -> config().
-
 init_per_testcase(TestCaseName, C) ->
     ct_helper:makeup_cfg([ct_helper:test_case_name(TestCaseName), ct_helper:woody_ctx()], C).
 
 %%
 
 -spec tag_success(config()) -> test_return().
-
 tag_success(C) ->
     Tag = genlib:unique(),
     ID = pid_to_binary(self()),
@@ -88,7 +84,6 @@ tag_success(C) ->
     {ok, ID} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
 
 -spec tag_twice_success(config()) -> test_return().
-
 tag_twice_success(C) ->
     Tag = genlib:unique(),
     ID = pid_to_binary(self()),
@@ -98,13 +93,12 @@ tag_twice_success(C) ->
     {ok, ID} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
 
 -spec single_tag_set_only(config()) -> test_return().
-
 single_tag_set_only(C) ->
     Tag = genlib:unique(),
     Opts = #{woody_ctx => get_woody_ctx(C)},
     IDs = [integer_to_binary(E) || E <- lists:seq(1, 42)],
     Rs = genlib_pmap:map(
-        fun (ID) ->
+        fun(ID) ->
             {ID, machinery_machine_unique_tag_mg_example:tag(payproc, Tag, ID, Opts)}
         end,
         IDs
@@ -114,7 +108,6 @@ single_tag_set_only(C) ->
     IDsLeft = [ID0 || {ID0, {error, {set, ID}}} <- Rs, ID == IDSet].
 
 -spec untag_success(config()) -> test_return().
-
 untag_success(C) ->
     Tag = genlib:unique(),
     ID = pid_to_binary(self()),
@@ -124,7 +117,6 @@ untag_success(C) ->
     {error, unset} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
 
 -spec conflict_untag_failure(config()) -> test_return().
-
 conflict_untag_failure(C) ->
     Tag = genlib:unique(),
     ID1 = pid_to_binary(self()),
@@ -136,7 +128,6 @@ conflict_untag_failure(C) ->
     ok = machinery_machine_unique_tag_mg_example:untag(payproc, Tag, ID2, Opts).
 
 -spec reset_tag_success(config()) -> test_return().
-
 reset_tag_success(C) ->
     Tag = genlib:unique(),
     ID = pid_to_binary(self()),
@@ -148,14 +139,14 @@ reset_tag_success(C) ->
     {ok, ID} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
 
 -spec tag_unset_timely(config()) -> test_return().
-
 tag_unset_timely(C) ->
     Tag = genlib:unique(),
     ID = pid_to_binary(self()),
     Opts = #{woody_ctx => get_woody_ctx(C)},
     ok = machinery_machine_unique_tag_mg_example:tag_until(payproc, Tag, ID, {timeout, 1}, Opts),
     {ok, ID} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts),
-    ok = timer:sleep(2 * 1000), % twice as much as needed
+    % twice as much as needed
+    ok = timer:sleep(2 * 1000),
     {error, unset} = machinery_machine_unique_tag_mg_example:get(payproc, Tag, Opts).
 
 %%

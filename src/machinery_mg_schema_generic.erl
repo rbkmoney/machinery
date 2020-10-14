@@ -28,34 +28,29 @@
 -type v(T) :: machinery_mg_schema:v(T).
 -type context() :: machinery_mg_schema:context().
 
--spec marshal(t(), v(eterm()), context()) ->
-    {machinery_msgpack:t(), context()}.
+-spec marshal(t(), v(eterm()), context()) -> {machinery_msgpack:t(), context()}.
 marshal(_T, V, C) ->
     {marshal(V), C}.
 
--spec unmarshal(t(), machinery_msgpack:t(), context()) ->
-    {v(eterm()), context()}.
+-spec unmarshal(t(), machinery_msgpack:t(), context()) -> {v(eterm()), context()}.
 unmarshal(_T, V, C) ->
     {unmarshal(V), C}.
 
--spec get_version(machinery_mg_schema:vt()) ->
-    machinery_mg_schema:version().
-
+-spec get_version(machinery_mg_schema:vt()) -> machinery_mg_schema:version().
 get_version(_) ->
     undefined.
 
 %% API
 
 -type eterm() ::
-    atom()   |
-    number() |
-    tuple()  |
-    binary() |
-    list()   |
-    map().
+    atom()
+    | number()
+    | tuple()
+    | binary()
+    | list()
+    | map().
 
--spec marshal(eterm()) ->
-    machinery_msgpack:t().
+-spec marshal(eterm()) -> machinery_msgpack:t().
 marshal(undefined) ->
     nil();
 marshal(V) when is_boolean(V) ->
@@ -73,12 +68,11 @@ marshal(V) when is_list(V) ->
 marshal(V) when is_tuple(V) ->
     wrap([marshal(tup) | lists:map(fun marshal/1, tuple_to_list(V))]);
 marshal(V) when is_map(V) ->
-    wrap([marshal(map), wrap(genlib_map:truemap(fun (Ke, Ve) -> {marshal(Ke), marshal(Ve)} end, V))]);
+    wrap([marshal(map), wrap(genlib_map:truemap(fun(Ke, Ve) -> {marshal(Ke), marshal(Ve)} end, V))]);
 marshal(V) ->
     erlang:error(badarg, [V]).
 
--spec unmarshal(machinery_msgpack:t()) ->
-    eterm().
+-spec unmarshal(machinery_msgpack:t()) -> eterm().
 unmarshal(M) ->
     unmarshal_v(unwrap(M)).
 
@@ -102,4 +96,4 @@ unmarshal_v(lst, Vs) ->
 unmarshal_v(tup, Es) ->
     list_to_tuple(unmarshal_v(lst, Es));
 unmarshal_v(map, [V]) ->
-    genlib_map:truemap(fun (Ke, Ve) -> {unmarshal(Ke), unmarshal(Ve)} end, unwrap(V)).
+    genlib_map:truemap(fun(Ke, Ve) -> {unmarshal(Ke), unmarshal(Ve)} end, unwrap(V)).
