@@ -191,7 +191,7 @@ get(NS, Ref, Range, Opts) ->
     ('ProcessRepair', woody:args(), woody_context:ctx(), backend_handler_opts()) ->
         {ok, mg_proto_state_processing_thrift:'RepairResult'()}.
 handle_function('ProcessSignal', FunctionArgs, WoodyCtx, Opts) ->
-    [#mg_stateproc_SignalArgs{signal = MarshaledSignal, machine = MarshaledMachine}] = FunctionArgs,
+    {#mg_stateproc_SignalArgs{signal = MarshaledSignal, machine = MarshaledMachine}} = FunctionArgs,
     #{handler := Handler, schema := Schema} = Opts,
     {Machine, SContext0} = unmarshal({machine, Schema}, MarshaledMachine),
     {Signal, SContext1} = unmarshal({signal, Schema, SContext0}, MarshaledSignal),
@@ -203,7 +203,7 @@ handle_function('ProcessSignal', FunctionArgs, WoodyCtx, Opts) ->
     ),
     {ok, marshal({signal_result, Schema, SContext1}, handle_result(Result, Machine))};
 handle_function('ProcessCall', FunctionArgs, WoodyCtx, Opts) ->
-    [#mg_stateproc_CallArgs{arg = MarshaledArgs, machine = MarshaledMachine}] = FunctionArgs,
+    {#mg_stateproc_CallArgs{arg = MarshaledArgs, machine = MarshaledMachine}} = FunctionArgs,
     #{handler := Handler, schema := Schema} = Opts,
     {Machine, SContext0} = unmarshal({machine, Schema}, MarshaledMachine),
     {Args, SContext1} = unmarshal({schema, Schema, {args, call}, SContext0}, MarshaledArgs),
@@ -215,7 +215,7 @@ handle_function('ProcessCall', FunctionArgs, WoodyCtx, Opts) ->
     ),
     {ok, marshal({call_result, Schema, SContext1}, {Response, handle_result(Result, Machine)})};
 handle_function('ProcessRepair', FunctionArgs, WoodyCtx, Opts) ->
-    [#mg_stateproc_RepairArgs{arg = MarshaledArgs, machine = MarshaledMachine}] = FunctionArgs,
+    {#mg_stateproc_RepairArgs{arg = MarshaledArgs, machine = MarshaledMachine}} = FunctionArgs,
     #{handler := Handler, schema := Schema} = Opts,
     {Machine, SContext0} = unmarshal({machine, Schema}, MarshaledMachine),
     {Args, SContext1} = unmarshal({schema, Schema, {args, repair}, SContext0}, MarshaledArgs),

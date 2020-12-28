@@ -105,6 +105,9 @@ modernize(Descriptor, Client) ->
 
 %% Internal functions
 
+issue_call(Function, Args, {WoodyClient, WoodyCtx}) when is_list(Args) ->
+    ArgsTuple = list_to_tuple(Args),
+    issue_call(Function, ArgsTuple, {WoodyClient, WoodyCtx});
 issue_call(Function, Args, {WoodyClient, WoodyCtx}) ->
     Service = {mg_proto_state_processing_thrift, 'Automaton'},
     Request = {Service, Function, Args},
