@@ -109,7 +109,7 @@ modernize(NS, Ref, Range, Opts) ->
 
 -spec handle_function('ModernizeEvent', woody:args(), woody_context:ctx(), backend_handler_opts()) ->
     {ok, mg_proto_state_processing_thrift:'ModernizeEventResult'()}.
-handle_function('ModernizeEvent', [MachineEvent0], _WoodyCtx, #{schema := Schema}) ->
+handle_function('ModernizeEvent', {MachineEvent0}, _WoodyCtx, #{schema := Schema}) ->
     {MachineEvent, Context} = unmarshal_machine_event(Schema, MachineEvent0),
     TargetVersion = machinery_mg_schema:get_version(Schema, event),
     EventPayload = marshal_event_content(Schema, TargetVersion, Context, MachineEvent),

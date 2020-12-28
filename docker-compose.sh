@@ -15,7 +15,7 @@ services:
         condition: service_healthy
 
   machinegun:
-    image: dr2.rbkmoney.com/rbkmoney/machinegun:c89c2cecc6fa72895492c718f042a7ec90fd2442
+    image: dr2.rbkmoney.com/rbkmoney/machinegun:c35e8a08500fbc2f0f0fa376a145a7324d18a062
     command: /opt/machinegun/bin/machinegun foreground
     volumes:
       - ./test/machinegun/config.yaml:/opt/machinegun/etc/config.yaml
