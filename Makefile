@@ -7,7 +7,10 @@ SUBMODULES = $(UTILS_PATH)
 SUBTARGETS = $(patsubst %,%/.git,$(SUBMODULES))
 
 SERVICE_NAME := machinery
-BUILD_IMAGE_TAG := 0c638a682f4735a65ef232b81ed872ba494574c3
+BASE_IMAGE_NAME := service-erlang
+BASE_IMAGE_TAG := 54a794b4875ad79f90dba0a7708190b3b37d584f
+BUILD_IMAGE_NAME := build-erlang
+BUILD_IMAGE_TAG := 19ff48ccbe09b00b79303fc6e5c63a3a9f8fd859
 
 CALL_ANYWHERE := all submodules compile xref lint dialyze clean distclean check_format format
 
