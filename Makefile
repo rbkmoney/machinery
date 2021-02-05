@@ -8,9 +8,9 @@ SUBTARGETS = $(patsubst %,%/.git,$(SUBMODULES))
 
 SERVICE_NAME := machinery
 BASE_IMAGE_NAME := service-erlang
-BASE_IMAGE_TAG := 54a794b4875ad79f90dba0a7708190b3b37d584f
+BASE_IMAGE_TAG := 51bd5f25d00cbf75616e2d672601dfe7351dcaa4
 BUILD_IMAGE_NAME := build-erlang
-BUILD_IMAGE_TAG := 19ff48ccbe09b00b79303fc6e5c63a3a9f8fd859
+BUILD_IMAGE_TAG := 61a001bbb48128895735a3ac35b0858484fdb2eb
 
 CALL_ANYWHERE := all submodules compile xref lint dialyze clean distclean check_format format
 
@@ -35,7 +35,7 @@ xref: submodules
 	$(REBAR) xref
 
 lint:
-	elvis rock
+	elvis rock -V
 
 check_format:
 	$(REBAR) as test fmt -c
@@ -44,7 +44,7 @@ format:
 	$(REBAR) fmt -w
 
 dialyze: submodules
-	$(REBAR) dialyzer
+	$(REBAR) as test dialyzer
 
 clean:
 	$(REBAR) clean

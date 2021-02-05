@@ -45,7 +45,7 @@ all() ->
         {group, machinery_mg_backend}
     ].
 
--spec groups() -> [{group_name(), list(), test_case_name()}].
+-spec groups() -> [{group_name(), list(), [test_case_name() | {group, group_name()}]}].
 groups() ->
     [
         {machinery_mg_backend, [], [{group, all}]},
@@ -130,6 +130,7 @@ init(init_something, _Machine, _, _Opts) ->
         aux_state => #{}
     }.
 
+-dialyzer({nowarn_function, process_timeout/3}).
 -spec process_timeout(machine(), undefined, handler_opts()) -> result().
 process_timeout(_Args, _, _Opts) ->
     erlang:error({not_implemented, process_timeout}).

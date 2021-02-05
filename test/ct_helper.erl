@@ -61,7 +61,7 @@ start_app(woody = AppName) ->
 start_app(AppName) ->
     {start_app_with(AppName, []), #{}}.
 
--spec start_app_with(app_name(), app_env()) -> {[app_name()], #{atom() => _}}.
+-spec start_app_with(app_name(), app_env()) -> [app_name()].
 start_app_with(AppName, Env) ->
     _ = application:load(AppName),
     _ = set_app_env(AppName, Env),

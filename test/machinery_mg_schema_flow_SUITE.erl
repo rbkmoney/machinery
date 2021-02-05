@@ -42,7 +42,7 @@ all() ->
         {group, all}
     ].
 
--spec groups() -> [{group_name(), list(), test_case_name()}].
+-spec groups() -> [{group_name(), list(), [test_case_name()]}].
 groups() ->
     [
         {all, [parallel], [
