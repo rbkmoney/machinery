@@ -41,7 +41,7 @@ all() ->
         {group, machinery_mg_backend}
     ].
 
--spec groups() -> [{group_name(), list(), test_case_name()}].
+-spec groups() -> [{group_name(), list(), [test_case_name() | {group, group_name()}]}].
 groups() ->
     [
         {machinery_mg_backend, [], [{group, all}]},

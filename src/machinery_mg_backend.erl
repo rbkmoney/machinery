@@ -38,9 +38,10 @@
 %% handler server spec
 -type handler(A) :: {logic_handler(A), handler_config()}.
 
--type handler_opts() :: machinery:handler_opts(#{
-    woody_ctx := woody_context:ctx()
-}).
+-type handler_opts() ::
+    machinery:handler_opts(#{
+        woody_ctx := woody_context:ctx()
+    }).
 
 -type backend_handler_opts() :: #{
     handler := logic_handler(_),
@@ -48,11 +49,12 @@
 }.
 
 %% Client types
--type backend_opts() :: machinery:backend_opts(#{
-    woody_ctx := woody_context:ctx(),
-    client := machinery_mg_client:woody_client(),
-    ?BACKEND_CORE_OPTS
-}).
+-type backend_opts() ::
+    machinery:backend_opts(#{
+        woody_ctx := woody_context:ctx(),
+        client := machinery_mg_client:woody_client(),
+        ?BACKEND_CORE_OPTS
+    }).
 
 -type backend() :: {?MODULE, backend_opts()}.
 
